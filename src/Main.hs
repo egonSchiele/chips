@@ -78,7 +78,7 @@ maybeMove func gs newGs =
       LockBlue _   -> if _blueKeyCount gs > 0 then newGs else gs
       LockGreen _  -> if _hasGreenKey gs then newGs else gs
       LockYellow _ -> if _yellowKeyCount gs > 0 then newGs else gs
-      Gate _       -> newGs --if chipsLeft gs == 0 then newGs else gs
+      Gate _       -> if chipsLeft gs == 0 then newGs else gs
       _ -> newGs
 
 on (EventKey (SpecialKey KeyLeft) Down _ _) gs =
