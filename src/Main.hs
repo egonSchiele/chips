@@ -61,7 +61,7 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 13 = GateFinal def
           f 14 = Help def
 
-gameState = GameState renderedTiles (x .~ (8*tileSize) $ y .~ (8*tileSize) $ player_) 1 0 0 0 False def
+gameState = GameState renderedTiles (x .~ (8*tileSize) $ y .~ (8*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False def
         where player_ = (Player DirDown def)
 
 main = run "chips challenge" (9 * tileSize, 9 * tileSize) (x -~ (4*tileSize) $ y -~ (4*tileSize) $ gameState) on stepGame
