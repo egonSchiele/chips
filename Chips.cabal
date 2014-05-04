@@ -1,0 +1,35 @@
+name:                Chips
+version:             0.1.0.0
+-- synopsis:            
+-- description:         
+homepage:            http://adit.io
+license:             BSD3
+license-file:        LICENSE
+author:              Aditya Bhargava
+maintainer:          bluemangroupie@gmail.com
+-- copyright:           
+-- category:            
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable chips
+  build-depends:       base ==4.6.*
+  hs-source-dirs:      src
+  main-is: Main.hs
+
+-- Note: if you see an error message like:
+-- unknown symbol `dominionzm0zi1zi0zi3_DominionziCardsziIntrigue_intrigueCards_closure'
+-- ghc: unable to load package `dominion-0.1.0.3'
+-- It means that you haven't added a module to your exposed-modules list.
+
+Test-Suite test-chips
+  type:       exitcode-stdio-1.0
+  build-depends:       base ==4.6.*, hspec, Chips
+  hs-source-dirs:      spec, src
+  main-is:             Main.hs
+
+library
+  build-depends:       base ==4.6.*
+  exposed-modules:     Chips, Chips.Types, Chips.Core
+  hs-source-dirs:      src
+  Other-modules:       Chips.Utils
