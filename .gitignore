@@ -1,3 +1,4 @@
 .*
 dist/*
 tags
+cabal.sandbox.config*

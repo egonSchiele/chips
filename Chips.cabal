@@ -13,7 +13,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable chips
-  build-depends:       base ==4.6.*
+  build-depends:       base ==4.6.*, gloss, lens, mtl, template-haskell, ActionKid
   hs-source-dirs:      src
   main-is: Main.hs
 
@@ -21,15 +21,3 @@ executable chips
 -- unknown symbol `dominionzm0zi1zi0zi3_DominionziCardsziIntrigue_intrigueCards_closure'
 -- ghc: unable to load package `dominion-0.1.0.3'
 -- It means that you haven't added a module to your exposed-modules list.
-
-Test-Suite test-chips
-  type:       exitcode-stdio-1.0
-  build-depends:       base ==4.6.*, hspec, Chips
-  hs-source-dirs:      spec, src
-  main-is:             Main.hs
-
-library
-  build-depends:       base ==4.6.*
-  exposed-modules:     Chips, Chips.Types, Chips.Core
-  hs-source-dirs:      src
-  Other-modules:       Chips.Utils
