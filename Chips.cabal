@@ -16,6 +16,7 @@ executable chips
   build-depends:       base ==4.6.*, gloss, lens, mtl, template-haskell, ActionKid
   hs-source-dirs:      src
   main-is: Main.hs
+  ghc-options: -rtsopts -threaded "-with-rtsopts=-M500m -N"
 
 -- Note: if you see an error message like:
 -- unknown symbol `dominionzm0zi1zi0zi3_DominionziCardsziIntrigue_intrigueCards_closure'

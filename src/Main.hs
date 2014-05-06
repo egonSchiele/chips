@@ -8,6 +8,10 @@ import Graphics.Gloss hiding (display)
 import Chips.Utils
 
 tileSize = 32
+soundDir = "sounds/"
+
+oof :: IO ()
+oof = playSound (soundDir ++ "oof.wav") False
 
 tileMap = 
     [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -64,46 +68,60 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
 gameState = GameState renderedTiles (x .~ (8*tileSize) $ y .~ (8*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False def
         where player_ = (Player DirDown def)
 
-main = run "chips challenge" (9 * tileSize, 9 * tileSize) (x -~ (4*tileSize) $ y -~ (4*tileSize) $ gameState) on stepGame
+main = do
+    playSound (soundDir ++ "chips01.wav") True
+    run "chips challenge" (9 * tileSize, 9 * tileSize) (x -~ (4*tileSize) $ y -~ (4*tileSize) $ gameState) on stepGame
 
 chipsLeft gs = length $ filter isChip (_tiles gs)
   where isChip (Chip _) = True
         isChip _        = False
 
-maybeMove :: (GameState -> Tile) -> GameState -> GameState -> GameState
+maybeMove :: (GameState -> Tile) -> GameState -> GameState -> IO GameState
 maybeMove func gs newGs =
     case func gs of
-      Wall _ -> gs
-      LockRed _    -> if _redKeyCount gs > 0 then newGs else gs
-      LockBlue _   -> if _blueKeyCount gs > 0 then newGs else gs
-      LockGreen _  -> if _hasGreenKey gs then newGs else gs
-      LockYellow _ -> if _yellowKeyCount gs > 0 then newGs else gs
-      Gate _       -> if chipsLeft gs == 0 then newGs else gs
-      _ -> newGs
+      Wall _ -> do
+        oof
+        return gs
+      LockRed _    -> if _redKeyCount gs > 0
+                        then return newGs
+                        else oof >> return gs
+      LockBlue _   -> if _blueKeyCount gs > 0
+                        then return newGs
+                        else oof >> return gs
+      LockGreen _  -> if _hasGreenKey gs
+                        then return newGs
+                        else oof >> return gs
+      LockYellow _ -> if _yellowKeyCount gs > 0
+                        then return newGs
+                        else oof >> return gs
+      Gate _       -> if chipsLeft gs == 0
+                        then return newGs
+                        else oof >> return gs
+      _ -> return newGs
 
 on (EventKey (SpecialKey KeyLeft) Down _ _) gs =
-    return $ maybeMove leftTile gs $ 
+    maybeMove leftTile gs $ 
       player.direction .~ DirLeft
       $ player.x -~ tileSize
       $ x +~ tileSize
       $ gs
 
 on (EventKey (SpecialKey KeyRight) Down _ _) gs =
-    return $ maybeMove rightTile gs $
+    maybeMove rightTile gs $
       player.direction .~ DirRight
       $ player.x +~ tileSize
       $ x -~ tileSize
       $ gs
 
 on (EventKey (SpecialKey KeyUp) Down _ _) gs =
-    return $ maybeMove upTile gs $
+    maybeMove upTile gs $
       player.direction .~ DirUp
       $ player.y +~ tileSize
       $ y -~ tileSize
       $ gs
 
 on (EventKey (SpecialKey KeyDown) Down _ _) gs =
-    return $ maybeMove downTile gs $
+    maybeMove downTile gs $
       player.direction .~ DirDown
       $ player.y -~ tileSize
       $ y +~ tileSize
@@ -120,16 +138,26 @@ stepGame _ gs = do
     let attrs_ = ((gs ^. tiles) !! playerIx) ^. attrs
     let resetTile i = tiles.(ix i) .~ (Empty attrs_) $ gs
     case currentTile gs of
-      Chip _ -> return $ resetTile playerIx
+      Chip _ -> do
+        playSound (soundDir ++ "collect_chip.wav") False
+        return $ resetTile playerIx
       Gate _ -> return $ resetTile playerIx
       KeyYellow _ -> return $ yellowKeyCount +~ 1 $ resetTile playerIx
       KeyBlue _ -> return $ blueKeyCount +~ 1 $ resetTile playerIx
       KeyGreen _ -> return $ hasGreenKey .~ True $ resetTile playerIx
       KeyRed _ -> return $ redKeyCount +~ 1 $ resetTile playerIx
-      LockYellow _ -> return $ yellowKeyCount -~ 1 $ resetTile playerIx
-      LockBlue _ -> return $ blueKeyCount -~ 1 $ resetTile playerIx
-      LockGreen _ -> return $ resetTile playerIx
-      LockRed _ -> return $ redKeyCount -~ 1 $ resetTile playerIx
+      LockYellow _ -> do
+        playSound (soundDir ++ "door.wav") False
+        return $ yellowKeyCount -~ 1 $ resetTile playerIx
+      LockBlue _ -> do
+        playSound (soundDir ++ "door.wav") False
+        return $ blueKeyCount -~ 1 $ resetTile playerIx
+      LockGreen _ -> do
+        playSound (soundDir ++ "door.wav") False
+        return $ resetTile playerIx
+      LockRed _ -> do
+        playSound (soundDir ++ "door.wav") False
+        return $ redKeyCount -~ 1 $ resetTile playerIx
       GateFinal _ -> do
         let lvl = _level gs
         return $ LevelComplete lvl def
