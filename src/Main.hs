@@ -8,6 +8,17 @@ import Graphics.Gloss hiding (display)
 import Chips.Utils
 import Data.List
 import Data.Maybe
+import Data.IORef
+import System.IO.Unsafe
+import Data.Time.Clock
+
+lastPress :: IORef UTCTime
+lastPress = unsafePerformIO $ do
+  now <- getCurrentTime
+  newIORef now
+
+($=) ref val = modifyIORef ref (const val)
+
 tileSize = 32
 soundDir = "sounds/"
 
@@ -137,13 +148,25 @@ on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
 on _ gs = return $ player.direction .~ Standing $ gs
 
 stepGame _ gs@(LevelComplete _ _) = return gs
-stepGame _ gs_ = do
-    gs <- case view direction (_player gs_) of
-            Standing -> return gs_
-            DirLeft  -> maybeMove leftTile gs_ $ player.x -~ tileSize $ x +~ tileSize $ gs_
-            DirRight -> maybeMove rightTile gs_ $ player.x +~ tileSize $ x -~ tileSize $ gs_
-            DirUp    -> maybeMove upTile gs_ $ player.y +~ tileSize $ y -~ tileSize $ gs_
-            DirDown  -> maybeMove downTile gs_ $ player.y -~ tileSize $ y +~ tileSize $ gs_
+stepGame t gs_ = do
+    print (t, floor t)
+    
+    gs <- if (floor t) `mod` 2 /= 0
+            then return gs_
+            else
+              case view direction (_player gs_) of
+                Standing -> return gs_
+                DirLeft  -> do
+                  cur <- getCurrentTime
+                  last <- readIORef lastPress
+                  if diffUTCTime last cur < -0.5
+                    then do
+                      lastPress $= cur
+                      maybeMove leftTile gs_ $ player.x -~ tileSize $ x +~ tileSize $ gs_
+                    else return gs_
+                DirRight -> maybeMove rightTile gs_ $ player.x +~ tileSize $ x -~ tileSize $ gs_
+                DirUp    -> maybeMove upTile gs_ $ player.y +~ tileSize $ y -~ tileSize $ gs_
+                DirDown  -> maybeMove downTile gs_ $ player.y -~ tileSize $ y +~ tileSize $ gs_
     let playerIx = currentIdx gs
     let attrs_ = ((gs ^. tiles) !! playerIx) ^. attrs
     let resetTile i = tiles.(ix i) .~ (Empty attrs_) $ gs
