@@ -12,13 +12,6 @@ import Data.IORef
 import System.IO.Unsafe
 import Data.Time.Clock
 
-lastPress :: IORef UTCTime
-lastPress = unsafePerformIO $ do
-  now <- getCurrentTime
-  newIORef now
-
-($=) ref val = modifyIORef ref (const val)
-
 tileSize = 32
 soundDir = "sounds/"
 
@@ -100,73 +93,95 @@ chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
               Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
               Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 3)
 
-gameState = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False def
-        where player_ = (Player Standing def)
+gameState = x .~ startX $ y .~ startY $ gs
+  where player_ = (Player Standing def)
+        gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False def
+        startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
+        startY = (4 - snd chipStart) * tileSize
 
 main = do
     print chipStart
     playSound (soundDir ++ "chips01.wav") True
-    run "chips challenge" (9 * tileSize, 9 * tileSize) (x .~ ((4 - fst chipStart)*tileSize) $ y .~ ((4 - snd chipStart)*tileSize) $ gameState) on stepGame
+    run "chips challenge" (9 * tileSize, 9 * tileSize) gameState on stepGame
 
 chipsLeft gs = length $ filter isChip (_tiles gs)
   where isChip (Chip _) = True
         isChip _        = False
 
+-- this keeps track of when we last moved.
+-- So if the user is holding a key down, we
+-- don't want to move too fast.
+lastPress :: IORef UTCTime
+lastPress = unsafePerformIO $ do
+  now <- getCurrentTime
+  newIORef now
+
+($=) ref val = modifyIORef ref (const val)
+
+-- if a user is holding a key down, move
+-- this fast (currently every 1/4 of a second)
+moveSpeed = -0.25
+
 maybeMove :: (GameState -> Tile) -> GameState -> GameState -> IO GameState
-maybeMove func gs newGs =
-    case func gs of
-      Wall _ -> do
-        oof
-        return gs
-      LockRed _    -> if _redKeyCount gs > 0
-                        then return newGs
-                        else oof >> return gs
-      LockBlue _   -> if _blueKeyCount gs > 0
-                        then return newGs
-                        else oof >> return gs
-      LockGreen _  -> if _hasGreenKey gs
-                        then return newGs
-                        else oof >> return gs
-      LockYellow _ -> if _yellowKeyCount gs > 0
-                        then return newGs
-                        else oof >> return gs
-      Gate _       -> if chipsLeft gs == 0
-                        then return newGs
-                        else oof >> return gs
-      _ -> return newGs
+maybeMove func gs newGs = do
+    cur <- getCurrentTime
+    last <- readIORef lastPress
+    if diffUTCTime last cur > moveSpeed
+      then return gs
+      else do
+        lastPress $= cur
+        case func gs of
+          Wall _ -> do
+            oof
+            return gs
+          LockRed _    -> if _redKeyCount gs > 0
+                            then return newGs
+                            else oof >> return gs
+          LockBlue _   -> if _blueKeyCount gs > 0
+                            then return newGs
+                            else oof >> return gs
+          LockGreen _  -> if _hasGreenKey gs
+                            then return newGs
+                            else oof >> return gs
+          LockYellow _ -> if _yellowKeyCount gs > 0
+                            then return newGs
+                            else oof >> return gs
+          Gate _       -> if chipsLeft gs == 0
+                            then return newGs
+                            else oof >> return gs
+          _ -> return newGs
 
-on (EventKey (SpecialKey KeyLeft) Down _ _) gs = return $ player.direction .~ DirLeft $ gs
+resetMoveTime = modifyIORef lastPress (addUTCTime moveSpeed)
 
-on (EventKey (SpecialKey KeyRight) Down _ _) gs = return $ player.direction .~ DirRight $ gs
+on (EventKey (SpecialKey KeyLeft) Down _ _) gs = do
+    resetMoveTime
+    return $ player.direction .~ DirLeft $ gs
 
-on (EventKey (SpecialKey KeyUp) Down _ _) gs = return $ player.direction .~ DirUp $ gs
+on (EventKey (SpecialKey KeyRight) Down _ _) gs = do
+    resetMoveTime
+    return $ player.direction .~ DirRight $ gs
 
-on (EventKey (SpecialKey KeyDown) Down _ _) gs = return $ player.direction .~ DirDown $ gs
+on (EventKey (SpecialKey KeyUp) Down _ _) gs = do
+    resetMoveTime
+    return $ player.direction .~ DirUp $ gs
+
+on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
+    resetMoveTime
+    return $ player.direction .~ DirDown $ gs
 
 on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
 
 on _ gs = return $ player.direction .~ Standing $ gs
 
 stepGame _ gs@(LevelComplete _ _) = return gs
-stepGame t gs_ = do
-    print (t, floor t)
+stepGame _ gs_ = do
     
-    gs <- if (floor t) `mod` 2 /= 0
-            then return gs_
-            else
-              case view direction (_player gs_) of
-                Standing -> return gs_
-                DirLeft  -> do
-                  cur <- getCurrentTime
-                  last <- readIORef lastPress
-                  if diffUTCTime last cur < -0.5
-                    then do
-                      lastPress $= cur
-                      maybeMove leftTile gs_ $ player.x -~ tileSize $ x +~ tileSize $ gs_
-                    else return gs_
-                DirRight -> maybeMove rightTile gs_ $ player.x +~ tileSize $ x -~ tileSize $ gs_
-                DirUp    -> maybeMove upTile gs_ $ player.y +~ tileSize $ y -~ tileSize $ gs_
-                DirDown  -> maybeMove downTile gs_ $ player.y -~ tileSize $ y +~ tileSize $ gs_
+    gs <- case view direction (_player gs_) of
+            Standing -> return gs_
+            DirLeft  -> maybeMove leftTile gs_ $ player.x -~ tileSize $ x +~ tileSize $ gs_
+            DirRight -> maybeMove rightTile gs_ $ player.x +~ tileSize $ x -~ tileSize $ gs_
+            DirUp    -> maybeMove upTile gs_ $ player.y +~ tileSize $ y -~ tileSize $ gs_
+            DirDown  -> maybeMove downTile gs_ $ player.y -~ tileSize $ y +~ tileSize $ gs_
     let playerIx = currentIdx gs
     let attrs_ = ((gs ^. tiles) !! playerIx) ^. attrs
     let resetTile i = tiles.(ix i) .~ (Empty attrs_) $ gs
