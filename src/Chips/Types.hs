@@ -39,7 +39,7 @@ instance Renderable Tile where
     render (GateFinal _)  = image "images/gate_final1.png"
     render (Help _)       = image "images/help.png"
 
-data Direction = DirUp | DirDown | DirLeft | DirRight
+data Direction = DirUp | DirDown | DirLeft | DirRight | Standing
 
 data Player = Player {
                 _direction :: Direction,
@@ -55,6 +55,7 @@ instance Renderable Player where
                  DirDown  -> image "images/player_down.png"
                  DirLeft  -> image "images/player_left.png"
                  DirRight -> image "images/player_right.png"
+                 Standing -> image "images/player_down.png"
 
 data GameState = GameState {
                     _tiles :: [Tile],

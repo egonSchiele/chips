@@ -90,7 +90,7 @@ chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
               Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 3)
 
 gameState = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False def
-        where player_ = (Player DirDown def)
+        where player_ = (Player Standing def)
 
 main = do
     print chipStart
@@ -124,41 +124,26 @@ maybeMove func gs newGs =
                         else oof >> return gs
       _ -> return newGs
 
-on (EventKey (SpecialKey KeyLeft) Down _ _) gs =
-    maybeMove leftTile gs $ 
-      player.direction .~ DirLeft
-      $ player.x -~ tileSize
-      $ x +~ tileSize
-      $ gs
+on (EventKey (SpecialKey KeyLeft) Down _ _) gs = return $ player.direction .~ DirLeft $ gs
 
-on (EventKey (SpecialKey KeyRight) Down _ _) gs =
-    maybeMove rightTile gs $
-      player.direction .~ DirRight
-      $ player.x +~ tileSize
-      $ x -~ tileSize
-      $ gs
+on (EventKey (SpecialKey KeyRight) Down _ _) gs = return $ player.direction .~ DirRight $ gs
 
-on (EventKey (SpecialKey KeyUp) Down _ _) gs =
-    maybeMove upTile gs $
-      player.direction .~ DirUp
-      $ player.y +~ tileSize
-      $ y -~ tileSize
-      $ gs
+on (EventKey (SpecialKey KeyUp) Down _ _) gs = return $ player.direction .~ DirUp $ gs
 
-on (EventKey (SpecialKey KeyDown) Down _ _) gs =
-    maybeMove downTile gs $
-      player.direction .~ DirDown
-      $ player.y -~ tileSize
-      $ y +~ tileSize
-      $ gs
+on (EventKey (SpecialKey KeyDown) Down _ _) gs = return $ player.direction .~ DirDown $ gs
 
-on (EventKey (SpecialKey KeySpace) Down _ _) gs =
-    return gameState
-on _ gs =
-    return $ player.direction .~ DirDown $ gs
+on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
+
+on _ gs = return $ player.direction .~ Standing $ gs
 
 stepGame _ gs@(LevelComplete _ _) = return gs
-stepGame _ gs = do
+stepGame _ gs_ = do
+    gs <- case view direction (_player gs_) of
+            Standing -> return gs_
+            DirLeft  -> maybeMove leftTile gs_ $ player.x -~ tileSize $ x +~ tileSize $ gs_
+            DirRight -> maybeMove rightTile gs_ $ player.x +~ tileSize $ x -~ tileSize $ gs_
+            DirUp    -> maybeMove upTile gs_ $ player.y +~ tileSize $ y -~ tileSize $ gs_
+            DirDown  -> maybeMove downTile gs_ $ player.y -~ tileSize $ y +~ tileSize $ gs_
     let playerIx = currentIdx gs
     let attrs_ = ((gs ^. tiles) !! playerIx) ^. attrs
     let resetTile i = tiles.(ix i) .~ (Empty attrs_) $ gs
