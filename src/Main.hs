@@ -22,7 +22,7 @@ oof = playSound (soundDir ++ "oof.wav") False
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
-    contents <- B.readFile "maps/01.json"
+    contents <- B.readFile "maps/1.json"
     let decoded = eitherDecode contents :: Either String [[Int]]
     case decoded of
       Left err -> error err
