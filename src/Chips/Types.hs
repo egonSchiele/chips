@@ -5,6 +5,8 @@ import Control.Lens
 import ActionKid
 import Graphics.Gloss hiding (display)
 
+data Direction = DirUp | DirDown | DirLeft | DirRight | Standing deriving (Show, Eq)
+
 data Tile = Empty Attributes
           | Wall  Attributes
           | Chip  Attributes
@@ -20,7 +22,7 @@ data Tile = Empty Attributes
           | GateFinal Attributes
           | Help Attributes
           | Amoeba Attributes
-          | Bee Direction Attributes
+          | Bee Attributes
           | Bomb Attributes
           | FFDown Attributes
           | FFLeft Attributes
@@ -40,10 +42,10 @@ data Tile = Empty Attributes
           | Ice Attributes
           | Sand Attributes
           | Spy Attributes
-          | Tank Direction Attributes
+          | Tank Attributes
           | WaterSplash Attributes
           | Water Attributes
-          | Worm Direction Attributes
+          | Worm Attributes
           deriving (Show, Eq)
 
 deriveMC ''Tile
@@ -64,10 +66,11 @@ instance Renderable Tile where
     render (GateFinal _)       = image "images/gate_final1.png"
     render (Help _)            = image "images/help.png"
     render (Amoeba _)          = image "images/amoeba.png"
-    render (Bee DirUp _)       = image "images/bee_up.png"
-    render (Bee DirDown _)     = image "images/bee_down.png"
-    render (Bee DirLeft _)     = image "images/bee_left.png"
-    render (Bee DirRight _)    = image "images/bee_right.png"
+    render (Bee _)             = image "images/bee_up.png"
+    -- render (Bee DirUp _)       = image "images/bee_up.png"
+    -- render (Bee DirDown _)     = image "images/bee_down.png"
+    -- render (Bee DirLeft _)     = image "images/bee_left.png"
+    -- render (Bee DirRight _)    = image "images/bee_right.png"
     render (Bomb _)            = image "images/bomb.png"
     render (FFDown _)          = image "images/ff_down.png"
     render (FFLeft _)          = image "images/ff_left.png"
@@ -78,10 +81,11 @@ instance Renderable Tile where
     render (FireBoots _)       = image "images/fire_boots.png"
     render (Fire _)            = image "images/fire.png"
     render (Flipper _)         = image "images/flipper.png"
-    render (Frog DirUp _)      = image "images/frog_up.png"
-    render (Frog DirDown _)    = image "images/frog_down.png"
-    render (Frog DirLeft _)    = image "images/frog_left.png"
-    render (Frog DirRight _)   = image "images/frog_right.png"
+    render (Frog _)            = image "images/frog_up.png"
+    -- render (Frog DirUp _)      = image "images/frog_up.png"
+    -- render (Frog DirDown _)    = image "images/frog_down.png"
+    -- render (Frog DirLeft _)    = image "images/frog_left.png"
+    -- render (Frog DirRight _)   = image "images/frog_right.png"
     render (IceBottomLeft _)   = image "images/ice_bottom_left.png"
     render (IceBottomRight _)  = image "images/ice_bottom_right.png"
     render (IceSkates _)       = image "images/ice_skates.png"
@@ -90,18 +94,18 @@ instance Renderable Tile where
     render (Ice _)             = image "images/ice.png"
     render (Sand _)            = image "images/sand.png"
     render (Spy _)             = image "images/spy.png"
-    render (Tank DirUp _)      = image "images/tank_up.png"
-    render (Tank DirDown _)    = image "images/tank_down.png"
-    render (Tank DirLeft _)    = image "images/tank_left.png"
-    render (Tank DirRight _)   = image "images/tank_right.png"
+    render (Tank _)            = image "images/tank_up.png"
+    -- render (Tank DirUp _)      = image "images/tank_up.png"
+    -- render (Tank DirDown _)    = image "images/tank_down.png"
+    -- render (Tank DirLeft _)    = image "images/tank_left.png"
+    -- render (Tank DirRight _)   = image "images/tank_right.png"
     render (WaterSplash _)     = image "images/water_splash.png"
     render (Water _)           = image "images/water.png"
-    render (Worm DirUp _)      = image "images/worm_up.png"
-    render (Worm DirDown _)    = image "images/worm_down.png"
-    render (Worm DirLeft _)    = image "images/worm_left.png"
-    render (Worm DirRight _)   = image "images/worm_right.png"
-
-data Direction = DirUp | DirDown | DirLeft | DirRight | Standing
+    render (Worm _)            = image "images/worm_up.png"
+    -- render (Worm DirUp _)      = image "images/worm_up.png"
+    -- render (Worm DirDown _)    = image "images/worm_down.png"
+    -- render (Worm DirLeft _)    = image "images/worm_left.png"
+    -- render (Worm DirRight _)   = image "images/worm_right.png"
 
 data Player = Player {
                 _direction :: Direction,

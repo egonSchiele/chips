@@ -22,7 +22,7 @@ oof = playSound (soundDir ++ "oof.wav") False
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
-    contents <- B.readFile "maps/1.json"
+    contents <- B.readFile "maps/2.json"
     let decoded = eitherDecode contents :: Either String [[Int]]
     case decoded of
       Left err -> error err
@@ -62,37 +62,37 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 12 = Gate def
           f 13 = GateFinal def
           f 14 = Help def
-          f 15 = Amoeba
-          f 16 = Bee
-          f 17 = Bomb
-          f 18 = FFDown
-          f 19 = FFLeft
-          f 20 = FFRight
-          f 21 = FFUp
-          f 22 = FFRandom
-          f 23 = FFShoes
-          f 24 = FireBoots
-          f 25 = Fire
-          f 26 = Flipper
-          f 27 = Frog
-          f 28 = IceBottomLeft
-          f 29 = IceBottomRight
-          f 30 = IceSkates
-          f 31 = IceTopLeft
-          f 32 = IceTopRight
-          f 33 = Ice
-          f 34 = Sand
-          f 35 = Spy
-          f 36 = Tank
-          f 37 = WaterSplash
-          f 38 = Water
-          f 39 = Worm
+          f 15 = Amoeba def
+          f 16 = Bee def
+          f 17 = Bomb def
+          f 18 = FFDown def
+          f 19 = FFLeft def
+          f 20 = FFRight def
+          f 21 = FFUp def
+          f 22 = FFRandom def
+          f 23 = FFShoes def
+          f 24 = FireBoots def
+          f 25 = Fire def
+          f 26 = Flipper def
+          f 27 = Frog def
+          f 28 = IceBottomLeft def
+          f 29 = IceBottomRight def
+          f 30 = IceSkates def
+          f 31 = IceTopLeft def
+          f 32 = IceTopRight def
+          f 33 = Ice def
+          f 34 = Sand def
+          f 35 = Spy def
+          f 36 = Tank def
+          f 37 = WaterSplash def
+          f 38 = Water def
+          f 39 = Worm def
 
 -- | (x, y) of chip's start position (marked as a 0 on the tile map)
 chipStart :: (Float, Float)
 chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
               Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
-              Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 3)
+              Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 6)
 
 gameState = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing def)
