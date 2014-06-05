@@ -40,7 +40,7 @@ data Tile = Empty Attributes
           | IceTopLeft Attributes
           | IceTopRight Attributes
           | Ice Attributes
-          | Sand Attributes
+          | Sand { _inWater :: Bool, _sandAttrs :: Attributes }
           | Spy Attributes
           | Tank Attributes
           | WaterSplash Attributes
@@ -92,7 +92,7 @@ instance Renderable Tile where
     render (IceTopLeft _)      = image "images/ice_top_left.png"
     render (IceTopRight _)     = image "images/ice_top_right.png"
     render (Ice _)             = image "images/ice.png"
-    render (Sand _)            = image "images/sand.png"
+    render (Sand _ _)            = image "images/sand.png"
     render (Spy _)             = image "images/spy.png"
     render (Tank _)            = image "images/tank_up.png"
     -- render (Tank DirUp _)      = image "images/tank_up.png"
@@ -133,6 +133,10 @@ data GameState = GameState {
                     _blueKeyCount :: Int,
                     _yellowKeyCount :: Int,
                     _hasGreenKey :: Bool,
+                    _hasFFShoes :: Bool,
+                    _hasFireBoots :: Bool,
+                    _hasFlippers :: Bool,
+                    _hasIceSkates :: Bool,
                     _ga :: Attributes
                } | LevelComplete {
                     _levelNum :: Int,

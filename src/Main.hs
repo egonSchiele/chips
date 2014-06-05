@@ -20,6 +20,9 @@ soundDir = "sounds/"
 oof :: IO ()
 oof = playSound (soundDir ++ "oof.wav") False
 
+bummer :: IO ()
+bummer = playSound (soundDir ++ "bummer.wav") False
+
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
     contents <- B.readFile "maps/2.json"
@@ -81,7 +84,7 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 31 = IceTopLeft def
           f 32 = IceTopRight def
           f 33 = Ice def
-          f 34 = Sand def
+          f 34 = Sand False def
           f 35 = Spy def
           f 36 = Tank def
           f 37 = WaterSplash def
@@ -96,7 +99,7 @@ chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
 
 gameState = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing def)
-        gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False def
+        gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False False False False False def
         startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
         startY = (4 - snd chipStart) * tileSize
 
@@ -209,4 +212,32 @@ stepGame _ gs_ = do
       GateFinal _ -> do
         let lvl = _level gs
         return $ LevelComplete lvl def
+      Water _ -> do
+        if (not . _hasFlippers $ gs)
+          then bummer >> return gameState
+          else return gs
+      Sand _ _ -> do
+        case view direction (_player gs) of
+          Standing -> error "standing on sand?"
+          DirLeft  -> moveSand (playerIx - 1) gs
+          DirRight -> moveSand (playerIx + 1) gs
+          DirUp    -> moveSand (playerIx - boardW) gs
+          DirDown  -> moveSand (playerIx + boardW) gs
       _ -> return gs
+
+moveSand :: Int -> GameState -> IO GameState
+moveSand destIx gs = if alreadyInWater
+                       then return $ tiles.(ix playerIx) .~ (Empty playerLocAttrs) $ gs
+                       else return $ tiles.(ix destIx) .~ (Sand inWater destAttrs) $
+                            tiles.(ix playerIx) .~ (Empty playerLocAttrs) $ gs
+    where playerIx = currentIdx gs
+          playerLocAttrs = ((gs ^. tiles) !! playerIx) ^. attrs
+          destAttrs = ((gs ^. tiles) !! destIx) ^. attrs
+          inWater = case (gs ^. tiles) !! destIx of
+                      Water _ -> True
+                      _ -> False
+          alreadyInWater = case (gs ^. tiles) !! playerIx of
+                             Sand True _ -> True
+                             Sand False _ -> False
+                             _ -> False
+
