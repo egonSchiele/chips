@@ -26,7 +26,7 @@ die = do
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
-    contents <- B.readFile "maps/2.json"
+    contents <- B.readFile "maps/3.json"
     let decoded = eitherDecode contents :: Either String [[Int]]
     case decoded of
       Left err -> error err
@@ -98,7 +98,7 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 23 = FFShoes def
           f 24 = FireBoots def
           f 25 = Fire def
-          f 26 = Flipper def
+          f 26 = Flippers def
           f 27 = Frog DirUp def
           f 28 = IceBottomLeft def
           f 29 = IceBottomRight def

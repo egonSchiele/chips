@@ -32,7 +32,7 @@ data Tile = Empty Attributes
           | FFShoes Attributes
           | FireBoots Attributes
           | Fire Attributes
-          | Flipper Attributes
+          | Flippers Attributes
           | Frog { _frogDirection :: Direction, _frogAttrs :: Attributes }
           | IceBottomLeft Attributes
           | IceBottomRight Attributes
@@ -79,7 +79,7 @@ instance Renderable Tile where
     render (FFShoes _)         = image "images/ff_shoes.png"
     render (FireBoots _)       = image "images/fire_boots.png"
     render (Fire _)            = image "images/fire.png"
-    render (Flipper _)         = image "images/flipper.png"
+    render (Flippers _)         = image "images/flippers.png"
     render (Frog DirUp _)      = image "images/frog_up.png"
     render (Frog DirDown _)    = image "images/frog_down.png"
     render (Frog DirLeft _)    = image "images/frog_left.png"
