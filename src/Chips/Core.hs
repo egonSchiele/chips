@@ -68,7 +68,6 @@ setTile pos tile = do
     let attrs_ = ((gs ^. tiles) !! i) ^. attrs
     tiles.(ix i) .= (attrs .~ attrs_ $ tile)
 
-
 renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
     where f 0  = Empty def -- 0 == where chip will be
           f 1  = Empty def

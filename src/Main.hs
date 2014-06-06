@@ -87,8 +87,8 @@ checkCurTile _ = return ()
 -- moveSand :: Int -> GameState -> IO GameState
 moveSand destPos = do
     destTile <- tilePosToTile destPos
-    let inWater = case destTile of
+    let intoWater = case destTile of
                     Water _ -> True
                     _ -> False
     setTile Current (Empty def)
-    setTile destPos (Sand inWater def)
+    setTile destPos (Sand intoWater def)

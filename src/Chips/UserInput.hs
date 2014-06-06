@@ -76,4 +76,19 @@ maybeMove tilePos newGs = do
           Gate _       -> if chipsLeft gs == 0
                             then newGs
                             else oof
+          Sand _ _ -> do
+            i <- tilePosToIndex tilePos
+            -- the index of the tile that this block
+            -- of sand would be pushed to, if we allow the user to move
+            let moveIdx =
+                  case tilePos of
+                    TileLeft -> i - 1
+                    TileRight -> i + 1
+                    TileAbove -> i - boardW
+                    TileBelow -> i + boardW
+            let moveTile = (gs ^. tiles) !! moveIdx
+            case moveTile of
+              Empty _ -> newGs
+              Water _ -> newGs
+              _ -> oof
           _ -> newGs
