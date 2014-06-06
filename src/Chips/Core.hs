@@ -88,7 +88,7 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 13 = GateFinal def
           f 14 = Help def
           f 15 = Amoeba def
-          f 16 = Bee def
+          f 16 = Bee DirUp def
           f 17 = Bomb def
           f 18 = FFDown def
           f 19 = FFLeft def
@@ -99,7 +99,7 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 24 = FireBoots def
           f 25 = Fire def
           f 26 = Flipper def
-          f 27 = Frog def
+          f 27 = Frog DirUp def
           f 28 = IceBottomLeft def
           f 29 = IceBottomRight def
           f 30 = IceSkates def
@@ -108,10 +108,10 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 33 = Ice def
           f 34 = Sand False def
           f 35 = Spy def
-          f 36 = Tank def
+          f 36 = Tank DirUp def
           f 37 = WaterSplash def
           f 38 = Water def
-          f 39 = Worm def
+          f 39 = Worm DirUp def
 
 -- | (x, y) of chip's start position (marked as a 0 on the tile map)
 chipStart :: (Float, Float)
