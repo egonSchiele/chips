@@ -18,8 +18,8 @@ oof = playSound (soundDir ++ "oof.wav") False
 bummer :: IO ()
 bummer = playSound (soundDir ++ "bummer.wav") False
 
-die :: IO GameState
-die = bummer >> return gameState
+-- die :: IO GameState
+die = (liftIO bummer) >> put gameState
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
@@ -47,10 +47,12 @@ rightTile gs   = (_tiles gs) !! (currentIdx gs + 1)
 upTile gs      = (_tiles gs) !! (currentIdx gs - boardW)
 downTile gs    = (_tiles gs) !! (currentIdx gs + boardW)
 
-resetCurrentTile :: GameState -> GameState
-resetCurrentTile gs = tiles.(ix i) .~ (Empty attrs_) $ gs
-    where attrs_ = ((gs ^. tiles) !! i) ^. attrs
-          i = currentIdx gs
+-- resetCurrentTile :: GameState -> GameState
+resetCurrentTile = do
+    gs <- get
+    let i = currentIdx gs
+        attrs_ = ((gs ^. tiles) !! i) ^. attrs
+    tiles.(ix i) .= (Empty attrs_)
 
 
 renderedTiles = renderTileMap tileMap f (tileSize, tileSize)

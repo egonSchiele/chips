@@ -39,10 +39,10 @@ on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
 -- on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
 on _ gs = return $ player.direction .~ Standing $ gs
 
-maybeMove :: (GameState -> Tile) -> GameState -> GameState -> IO GameState
-maybeMove func gs newGs = do
-    cur <- getCurrentTime
-    last <- readIORef lastPress
+-- maybeMove :: (GameState -> Tile) -> GameState -> GameState -> IO GameState
+maybeMove func newGs = do
+    cur <- liftIO getCurrentTime
+    last <- liftIO $ readIORef lastPress
     -- if we are holding a key down, we would move very fast.
     -- but in the game, there is a bit of a delay, chip doesn't ZOOM
     -- across the screen. This code slows chip down...so if the last 
@@ -54,26 +54,25 @@ maybeMove func gs newGs = do
     -- as you can keep jamming on the key. But if you hold a key down,
     -- you will move as fast as `moveSpeed`.
     if diffUTCTime last cur > moveSpeed
-      then return gs
+      then return ()
       else do
         lastPress $= cur
+        gs <- get
         case func gs of
-          Wall _ -> do
-            oof
-            return gs
+          Wall _ -> liftIO oof
           LockRed _    -> if _redKeyCount gs > 0
-                            then return newGs
-                            else oof >> return gs
+                            then put newGs
+                            else liftIO oof
           LockBlue _   -> if _blueKeyCount gs > 0
-                            then return newGs
-                            else oof >> return gs
+                            then put newGs
+                            else liftIO oof
           LockGreen _  -> if _hasGreenKey gs
-                            then return newGs
-                            else oof >> return gs
+                            then put newGs
+                            else liftIO oof
           LockYellow _ -> if _yellowKeyCount gs > 0
-                            then return newGs
-                            else oof >> return gs
+                            then put newGs
+                            else liftIO oof
           Gate _       -> if chipsLeft gs == 0
-                            then return newGs
-                            else oof >> return gs
-          _ -> return newGs
+                            then put newGs
+                            else liftIO oof
+          _ -> put newGs

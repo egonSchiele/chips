@@ -13,6 +13,7 @@ module Chips.Common (
     ,module Data.Time.Clock
     ,module Data.Aeson
     ,module ActionKid
+    ,module Control.Monad.State.Lazy
   ) where
 
 import Control.Applicative
@@ -29,3 +30,4 @@ import System.IO.Unsafe
 import Data.Time.Clock
 import Data.Aeson hiding ((.=))
 import ActionKid
+import Control.Monad.State.Lazy hiding (join)

@@ -110,7 +110,7 @@ instance Renderable Tile where
 data Player = Player {
                 _direction :: Direction,
                 _ar :: Attributes
-}
+} deriving Show
 
 makeLenses ''Player
 deriveMC ''Player
@@ -138,14 +138,11 @@ data GameState = GameState {
                     _hasFlippers :: Bool,
                     _hasIceSkates :: Bool,
                     _ga :: Attributes
-               } | LevelComplete {
-                    _levelNum :: Int,
-                    _lca :: Attributes
                }
 
 makeLenses ''GameState
 deriveMC ''GameState
 
 instance Renderable GameState where
-    render (LevelComplete _ _) = translate 0 200 $ scale 0.1 0.1 $ text "Level Complete! Press space to go onward!"
+    -- render (LevelComplete _ _) = translate 0 200 $ scale 0.1 0.1 $ text "Level Complete! Press space to go onward!"
     render gs = displayAll (_tiles gs) <> display (_player gs)
