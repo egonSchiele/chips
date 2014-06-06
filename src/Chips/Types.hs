@@ -137,6 +137,7 @@ data GameState = GameState {
                     _hasFireBoots :: Bool,
                     _hasFlippers :: Bool,
                     _hasIceSkates :: Bool,
+                    _godMode :: Bool,
                     _ga :: Attributes
                }
 

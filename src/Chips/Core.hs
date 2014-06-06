@@ -19,7 +19,10 @@ oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 bummer = liftIO $ playSound (soundDir ++ "bummer.wav") False
 
 -- die :: IO GameState
-die = bummer >> put gameState
+die = do
+  gs <- get
+  when (not $ gs ^. godMode) $ do
+    bummer >> put gameState
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
@@ -118,6 +121,6 @@ chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
 
 gameState = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing def)
-        gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False False False False False def
+        gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False False False False False False def
         startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
         startY = (4 - snd chipStart) * tileSize

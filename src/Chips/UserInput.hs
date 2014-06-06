@@ -36,7 +36,8 @@ on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
     resetMoveTime
     return $ player.direction .~ DirDown $ gs
 
--- on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
+on (EventKey (SpecialKey KeySpace) Down _ _) gs = do
+    return $ godMode .~ True $ gs
 on _ gs = return $ player.direction .~ Standing $ gs
 
 maybeMove :: TilePos -> GameMonad () -> GameMonad ()
