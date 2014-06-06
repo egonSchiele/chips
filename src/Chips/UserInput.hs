@@ -39,8 +39,8 @@ on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
 -- on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
 on _ gs = return $ player.direction .~ Standing $ gs
 
-maybeMove :: (GameState -> Tile) -> GameMonad -> GameMonad
-maybeMove func newGs = do
+maybeMove :: TilePos -> GameMonad () -> GameMonad ()
+maybeMove tilePos newGs = do
     cur <- liftIO getCurrentTime
     last <- liftIO $ readIORef lastPress
     -- if we are holding a key down, we would move very fast.
@@ -57,8 +57,9 @@ maybeMove func newGs = do
       then return ()
       else do
         liftIO $ lastPress $= cur
+        tile <- tilePosToTile tilePos
         gs <- get
-        case func gs of
+        case tile of
           Wall _ -> oof
           LockRed _    -> if _redKeyCount gs > 0
                             then newGs

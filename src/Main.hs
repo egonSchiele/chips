@@ -5,64 +5,65 @@ import Chips
 main = do
     print chipStart
     playSound (soundDir ++ "chips01.wav") True
+                                                                    -- move this logic to ActionKid instead
     run "chips challenge" (9 * tileSize, 9 * tileSize) gameState on (\_ gs -> execStateT stepGame gs)
 
-stepGame :: GameMonad
--- stepGame _ gs@(LevelComplete _ _) = return gs
+stepGame :: GameMonad ()
 stepGame = do
     gs <- get
     case gs ^. player.direction of
       DirLeft  -> do
-        maybeMove leftTile $ do
+        maybeMove TileLeft $ do
           player.x -= tileSize
           x += tileSize
       DirRight -> do
-        maybeMove rightTile $ do
+        maybeMove TileRight $ do
           player.x += tileSize
           x -= tileSize
       DirUp    -> do
-        maybeMove upTile $ do
+        maybeMove TileAbove $ do
           player.y += tileSize
           y -= tileSize
       DirDown  -> do
-        maybeMove downTile $ do
+        maybeMove TileBelow $ do
           player.y -= tileSize
           y += tileSize
       _ -> return ()
-    checkCurTile (currentTile gs)
+    curTile <- tilePosToTile Current
+    checkCurTile curTile
 
-checkCurTile :: Tile -> GameMonad
+checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
   liftIO $ playSound (soundDir ++ "collect_chip.wav") False
-  resetCurrentTile
-checkCurTile (Gate _) = resetCurrentTile
+  setTile Current (Empty def)
+checkCurTile (Gate _) = setTile Current (Empty def)
 checkCurTile (KeyYellow _) = do
-    yellowKeyCount += 1
-    resetCurrentTile
+  yellowKeyCount += 1
+  setTile Current (Empty def)
 checkCurTile (KeyBlue _) = do
-    blueKeyCount += 1
-    resetCurrentTile
+  blueKeyCount += 1
+  setTile Current (Empty def)
 checkCurTile (KeyGreen _) = do
-    hasGreenKey .= True
-    resetCurrentTile
+  hasGreenKey .= True
+  setTile Current (Empty def)
 checkCurTile (KeyRed _) = do
-    redKeyCount += 1
-    resetCurrentTile
+  redKeyCount += 1
+  setTile Current (Empty def)
 checkCurTile (LockYellow _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
   yellowKeyCount -= 1
-  resetCurrentTile
+  setTile Current (Empty def)
 checkCurTile (LockBlue _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
   blueKeyCount -= 1
-  resetCurrentTile
+  setTile Current (Empty def)
 checkCurTile (LockGreen _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
-  resetCurrentTile
+  setTile Current (Empty def)
 checkCurTile (LockRed _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
   redKeyCount -= 1
-  resetCurrentTile
+  setTile Current (Empty def)
 checkCurTile (GateFinal _) = do
   -- let lvl = _level gs
   return ()
@@ -70,33 +71,24 @@ checkCurTile (GateFinal _) = do
 checkCurTile (Water _) = do
   gs <- get
   when (not . _hasFlippers $ gs) die
-checkCurTile (Sand _ _) = do
+
+checkCurTile (Sand True _) = setTile Current (Empty def)
+checkCurTile (Sand False _) = do
   gs <- get
-  let playerIdx = currentIdx gs
   case gs ^. player.direction of
     Standing -> error "standing on sand?"
-    DirLeft  -> moveSand (playerIdx - 1)
-    DirRight -> moveSand (playerIdx + 1)
-    DirUp    -> moveSand (playerIdx - boardW)
-    DirDown  -> moveSand (playerIdx + boardW)
+    DirLeft  -> moveSand TileLeft
+    DirRight -> moveSand TileRight
+    DirUp    -> moveSand TileAbove
+    DirDown  -> moveSand TileBelow
 
 checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
-moveSand destIx = do
-    gs <- get
-    let playerIx = currentIdx gs
-        playerLocAttrs = ((gs ^. tiles) !! playerIx) ^. attrs
-        destAttrs = ((gs ^. tiles) !! destIx) ^. attrs
-        inWater = case (gs ^. tiles) !! destIx of
+moveSand destPos = do
+    destTile <- tilePosToTile destPos
+    let inWater = case destTile of
                     Water _ -> True
                     _ -> False
-        alreadyInWater = case (gs ^. tiles) !! playerIx of
-                           Sand True _ -> True
-                           Sand False _ -> False
-                           _ -> False
-    if alreadyInWater
-     then tiles.(ix playerIx) .= (Empty playerLocAttrs)
-     else do
-       tiles.(ix destIx) .= (Sand inWater destAttrs)
-       tiles.(ix playerIx) .= (Empty playerLocAttrs)
+    setTile Current (Empty def)
+    setTile destPos (Sand inWater def)

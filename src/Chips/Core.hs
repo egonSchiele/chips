@@ -41,18 +41,32 @@ currentIdx :: GameState -> Int
 currentIdx gs = y_ * boardW + x_
     where (x_,y_) = playerCoords gs
 
-currentTile gs = (_tiles gs) !! (currentIdx gs)
-leftTile gs    = (_tiles gs) !! (currentIdx gs - 1)
-rightTile gs   = (_tiles gs) !! (currentIdx gs + 1)
-upTile gs      = (_tiles gs) !! (currentIdx gs - boardW)
-downTile gs    = (_tiles gs) !! (currentIdx gs + boardW)
-
--- resetCurrentTile :: GameState -> GameState
-resetCurrentTile = do
+-- given a tile position, gives you the index
+-- of that tile in the tiles array.
+tilePosToIndex :: TilePos -> GameMonad Int
+tilePosToIndex pos = do
     gs <- get
-    let i = currentIdx gs
-        attrs_ = ((gs ^. tiles) !! i) ^. attrs
-    tiles.(ix i) .= (Empty attrs_)
+    let playerIdx = currentIdx gs
+    return $ case pos of
+      Current   -> playerIdx
+      TileLeft  -> playerIdx - 1
+      TileRight -> playerIdx + 1
+      TileAbove -> playerIdx - boardW
+      TileBelow -> playerIdx + boardW
+
+tilePosToTile :: TilePos -> GameMonad Tile
+tilePosToTile pos = do
+    gs <- get
+    i <- tilePosToIndex pos
+    return $ (gs ^. tiles) !! i
+
+setTile :: TilePos -> Tile -> GameMonad ()
+setTile pos tile = do
+    gs <- get
+    i <- tilePosToIndex pos
+    -- TODO refactor this -v
+    let attrs_ = ((gs ^. tiles) !! i) ^. attrs
+    tiles.(ix i) .= (attrs .~ attrs_ $ tile)
 
 
 renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
