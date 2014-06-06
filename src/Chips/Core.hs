@@ -12,14 +12,14 @@ chipsLeft gs = length $ filter isChip (_tiles gs)
 tileSize = 32
 soundDir = "sounds/"
 
-oof :: IO ()
-oof = playSound (soundDir ++ "oof.wav") False
+-- oof :: IO ()
+oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 
-bummer :: IO ()
-bummer = playSound (soundDir ++ "bummer.wav") False
+-- bummer :: IO ()
+bummer = liftIO $ playSound (soundDir ++ "bummer.wav") False
 
 -- die :: IO GameState
-die = (liftIO bummer) >> put gameState
+die = bummer >> put gameState
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do

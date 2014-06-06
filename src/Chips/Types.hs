@@ -146,3 +146,5 @@ deriveMC ''GameState
 instance Renderable GameState where
     -- render (LevelComplete _ _) = translate 0 200 $ scale 0.1 0.1 $ text "Level Complete! Press space to go onward!"
     render gs = displayAll (_tiles gs) <> display (_player gs)
+
+type GameMonad = StateT GameState IO ()

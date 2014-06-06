@@ -7,7 +7,7 @@ main = do
     playSound (soundDir ++ "chips01.wav") True
     run "chips challenge" (9 * tileSize, 9 * tileSize) gameState on (\_ gs -> execStateT stepGame gs)
 
--- stepGame :: Float -> GameState -> IO GameState
+stepGame :: GameMonad
 -- stepGame _ gs@(LevelComplete _ _) = return gs
 stepGame = do
     gs <- get
@@ -31,45 +31,46 @@ stepGame = do
       _ -> return ()
     checkCurTile (currentTile gs)
 
--- checkCurTile :: GameState -> Tile -> IO GameState
+checkCurTile :: Tile -> GameMonad
 checkCurTile (Chip _) = do
-  playSound (soundDir ++ "collect_chip.wav") False
+  liftIO $ playSound (soundDir ++ "collect_chip.wav") False
   resetCurrentTile
-checkCurTile gs (Gate _) = resetCurrentTile
-checkCurTile gs (KeyYellow _) = do
+checkCurTile (Gate _) = resetCurrentTile
+checkCurTile (KeyYellow _) = do
     yellowKeyCount += 1
     resetCurrentTile
-checkCurTile gs (KeyBlue _) = do
+checkCurTile (KeyBlue _) = do
     blueKeyCount += 1
     resetCurrentTile
-checkCurTile gs (KeyGreen _) = do
+checkCurTile (KeyGreen _) = do
     hasGreenKey .= True
     resetCurrentTile
-checkCurTile gs (KeyRed _) = do
+checkCurTile (KeyRed _) = do
     redKeyCount += 1
     resetCurrentTile
-checkCurTile gs (LockYellow _) = do
-  playSound (soundDir ++ "door.wav") False
+checkCurTile (LockYellow _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
   yellowKeyCount -= 1
   resetCurrentTile
-checkCurTile gs (LockBlue _) = do
-  playSound (soundDir ++ "door.wav") False
+checkCurTile (LockBlue _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
   blueKeyCount -= 1
   resetCurrentTile
-checkCurTile gs (LockGreen _) = do
-  playSound (soundDir ++ "door.wav") False
+checkCurTile (LockGreen _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
   resetCurrentTile
-checkCurTile gs (LockRed _) = do
-  playSound (soundDir ++ "door.wav") False
+checkCurTile (LockRed _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
   redKeyCount -= 1
   resetCurrentTile
-checkCurTile gs (GateFinal _) = do
-  let lvl = _level gs
+checkCurTile (GateFinal _) = do
+  -- let lvl = _level gs
   return ()
   -- put $ LevelComplete lvl def
-checkCurTile gs (Water _) = do
+checkCurTile (Water _) = do
+  gs <- get
   when (not . _hasFlippers $ gs) die
-checkCurTile gs (Sand _ _) = do
+checkCurTile (Sand _ _) = do
   gs <- get
   let playerIdx = currentIdx gs
   case gs ^. player.direction of
@@ -79,7 +80,7 @@ checkCurTile gs (Sand _ _) = do
     DirUp    -> moveSand (playerIdx - boardW)
     DirDown  -> moveSand (playerIdx + boardW)
 
-checkCurTile gs _ = return ()
+checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
 moveSand destIx = do

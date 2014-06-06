@@ -39,7 +39,7 @@ on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
 -- on (EventKey (SpecialKey KeySpace) Down _ _) gs = return gameState
 on _ gs = return $ player.direction .~ Standing $ gs
 
--- maybeMove :: (GameState -> Tile) -> GameState -> GameState -> IO GameState
+maybeMove :: (GameState -> Tile) -> GameMonad -> GameMonad
 maybeMove func newGs = do
     cur <- liftIO getCurrentTime
     last <- liftIO $ readIORef lastPress
@@ -56,23 +56,23 @@ maybeMove func newGs = do
     if diffUTCTime last cur > moveSpeed
       then return ()
       else do
-        lastPress $= cur
+        liftIO $ lastPress $= cur
         gs <- get
         case func gs of
-          Wall _ -> liftIO oof
+          Wall _ -> oof
           LockRed _    -> if _redKeyCount gs > 0
-                            then put newGs
-                            else liftIO oof
+                            then newGs
+                            else oof
           LockBlue _   -> if _blueKeyCount gs > 0
-                            then put newGs
-                            else liftIO oof
+                            then newGs
+                            else oof
           LockGreen _  -> if _hasGreenKey gs
-                            then put newGs
-                            else liftIO oof
+                            then newGs
+                            else oof
           LockYellow _ -> if _yellowKeyCount gs > 0
-                            then put newGs
-                            else liftIO oof
+                            then newGs
+                            else oof
           Gate _       -> if chipsLeft gs == 0
-                            then put newGs
-                            else liftIO oof
-          _ -> put newGs
+                            then newGs
+                            else oof
+          _ -> newGs
