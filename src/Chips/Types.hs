@@ -134,6 +134,7 @@ data GameState = GameState {
                     _hasFlippers :: Bool,
                     _hasIceSkates :: Bool,
                     _godMode :: Bool,
+                    _disableInput :: Bool,
                     _ga :: Attributes
                }
 

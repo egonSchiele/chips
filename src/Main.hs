@@ -11,6 +11,20 @@ main = do
 stepGame :: GameMonad ()
 stepGame = do
     gs <- get
+    curTile <- tilePosToTile Current
+    if (not $ gs ^. hasIceSkates)
+      then do
+        case curTile of
+          Ice            _ -> disableInput .= True
+          IceBottomLeft  _ -> disableInput .= True
+          IceBottomRight _ -> disableInput .= True
+          IceTopLeft     _ -> disableInput .= True
+          IceTopRight    _ -> disableInput .= True
+          _                -> do
+            when (gs ^. disableInput) $ do
+              player.direction .= Standing
+              disableInput .= False
+      else disableInput .= False               
     case gs ^. player.direction of
       DirLeft  -> do
         maybeMove TileLeft $ do
@@ -29,7 +43,6 @@ stepGame = do
           player.y -= tileSize
           y += tileSize
       _ -> return ()
-    curTile <- tilePosToTile Current
     checkCurTile curTile
 
 checkCurTile :: Tile -> GameMonad ()
@@ -71,7 +84,90 @@ checkCurTile (GateFinal _) = do
 checkCurTile (Water _) = do
   gs <- get
   when (not . _hasFlippers $ gs) die
-
+checkCurTile (Fire _) = do
+  gs <- get
+  when (not . _hasFireBoots $ gs) die
+checkCurTile (Ice _) = do
+  gs <- get
+  when (not . _hasIceSkates $ gs) $ do
+    case gs ^. player.direction of
+      DirLeft  -> do
+          player.x -= tileSize
+          x += tileSize
+      DirRight -> do
+          player.x += tileSize
+          x -= tileSize
+      DirUp    -> do
+          player.y += tileSize
+          y -= tileSize
+      DirDown  -> do
+          player.y -= tileSize
+          y += tileSize
+      _ -> return ()
+checkCurTile (IceBottomLeft _) = do
+  gs <- get
+  when (not . _hasIceSkates $ gs) $ do
+    case gs ^. player.direction of
+      DirLeft -> do
+        player.direction .= DirUp
+        player.y += tileSize
+        y -= tileSize
+      DirDown -> do
+        player.direction .= DirRight
+        player.x += tileSize
+        x -= tileSize
+      _ -> return ()
+checkCurTile (IceTopLeft _) = do
+  gs <- get
+  when (not . _hasIceSkates $ gs) $ do
+    case gs ^. player.direction of
+      DirLeft -> do
+        player.direction .= DirDown
+        player.y -= tileSize
+        y += tileSize
+      DirUp -> do
+        player.direction .= DirRight
+        player.x += tileSize
+        x -= tileSize
+      _ -> return ()
+checkCurTile (IceTopRight _) = do
+  gs <- get
+  when (not . _hasIceSkates $ gs) $ do
+    case gs ^. player.direction of
+      DirRight -> do
+        player.direction .= DirDown
+        player.y -= tileSize
+        y += tileSize
+      DirUp -> do
+        player.direction .= DirLeft
+        player.x -= tileSize
+        x += tileSize
+      _ -> return ()
+checkCurTile (IceBottomRight _) = do
+  gs <- get
+  when (not . _hasIceSkates $ gs) $ do
+    case gs ^. player.direction of
+      DirRight -> do
+        player.direction .= DirUp
+        player.y += tileSize
+        y -= tileSize
+      DirDown -> do
+        player.direction .= DirLeft
+        player.x -= tileSize
+        x += tileSize
+      _ -> return ()
+checkCurTile (FFShoes _) = do
+  hasFFShoes .= True
+  setTile Current (Empty def)
+checkCurTile (FireBoots _) = do
+  hasFireBoots .= True
+  setTile Current (Empty def)
+checkCurTile (Flippers _) = do
+  hasFlippers .= True
+  setTile Current (Empty def)
+checkCurTile (IceSkates _) = do
+  hasIceSkates .= True
+  setTile Current (Empty def)
 checkCurTile (Sand True _) = setTile Current (Empty def)
 checkCurTile (Sand False _) = do
   gs <- get
@@ -81,6 +177,7 @@ checkCurTile (Sand False _) = do
     DirRight -> moveSand TileRight
     DirUp    -> moveSand TileAbove
     DirDown  -> moveSand TileBelow
+
 
 checkCurTile _ = return ()
 

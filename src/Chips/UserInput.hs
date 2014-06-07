@@ -21,24 +21,39 @@ resetMoveTime :: IO ()
 resetMoveTime = modifyIORef lastPress (addUTCTime moveSpeed)
 
 on (EventKey (SpecialKey KeyLeft) Down _ _) gs = do
-    resetMoveTime
-    return $ player.direction .~ DirLeft $ gs
+    if gs ^. disableInput
+      then return gs
+      else do
+        resetMoveTime
+        return $ player.direction .~ DirLeft $ gs
 
 on (EventKey (SpecialKey KeyRight) Down _ _) gs = do
-    resetMoveTime
-    return $ player.direction .~ DirRight $ gs
+    if gs ^. disableInput
+      then return gs
+      else do
+        resetMoveTime
+        return $ player.direction .~ DirRight $ gs
 
 on (EventKey (SpecialKey KeyUp) Down _ _) gs = do
-    resetMoveTime
-    return $ player.direction .~ DirUp $ gs
+    if gs ^. disableInput
+      then return gs
+      else do
+        resetMoveTime
+        return $ player.direction .~ DirUp $ gs
 
 on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
-    resetMoveTime
-    return $ player.direction .~ DirDown $ gs
+    if gs ^. disableInput
+      then return gs
+      else do
+        resetMoveTime
+        return $ player.direction .~ DirDown $ gs
 
 on (EventKey (SpecialKey KeySpace) Down _ _) gs = do
     return $ godMode .~ True $ gs
-on _ gs = return $ player.direction .~ Standing $ gs
+on _ gs = do
+    if gs ^. disableInput
+      then return gs
+      else return $ player.direction .~ Standing $ gs
 
 maybeMove :: TilePos -> GameMonad () -> GameMonad ()
 maybeMove tilePos newGs = do
