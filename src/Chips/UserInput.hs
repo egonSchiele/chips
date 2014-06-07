@@ -89,19 +89,19 @@ maybeMove tilePos newGs = do
         gs <- get
         case tile of
           Wall _ -> oof
-          LockRed _    -> if _redKeyCount gs > 0
+          LockRed _    -> if _redKeyCount gs > 0 || gs ^. godMode
                             then newGs
                             else oof
-          LockBlue _   -> if _blueKeyCount gs > 0
+          LockBlue _   -> if _blueKeyCount gs > 0 || gs ^. godMode
                             then newGs
                             else oof
-          LockGreen _  -> if _hasGreenKey gs
+          LockGreen _  -> if _hasGreenKey gs || gs ^. godMode
                             then newGs
                             else oof
-          LockYellow _ -> if _yellowKeyCount gs > 0
+          LockYellow _ -> if _yellowKeyCount gs > 0 || gs ^. godMode
                             then newGs
                             else oof
-          Gate _       -> if chipsLeft gs == 0
+          Gate _       -> if chipsLeft gs == 0 || gs ^. godMode
                             then newGs
                             else oof
           Sand _ _ -> do
