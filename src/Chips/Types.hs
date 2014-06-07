@@ -105,6 +105,7 @@ instance Renderable Tile where
 
 data Player = Player {
                 _direction :: Direction,
+                _standingOn :: Tile,
                 _ar :: Attributes
 } deriving Show
 
@@ -113,11 +114,26 @@ deriveMC ''Player
 
 instance Renderable Player where
     render p = case p ^. direction of
-                 DirUp    -> image "images/player_up.png"
-                 DirDown  -> image "images/player_down.png"
-                 DirLeft  -> image "images/player_left.png"
-                 DirRight -> image "images/player_right.png"
-                 Standing -> image "images/player_down.png"
+                 DirUp    ->
+                   case p ^. standingOn of
+                     Water _ -> image "images/player_swim_up.png"
+                     _       -> image "images/player_up.png"
+                 DirDown  ->
+                   case p ^. standingOn of
+                     Water _ -> image "images/player_swim_down.png"
+                     _       -> image "images/player_down.png"
+                 DirLeft  -> 
+                   case p ^. standingOn of
+                     Water _ -> image "images/player_swim_left.png"
+                     _       -> image "images/player_left.png"
+                 DirRight ->
+                   case p ^. standingOn of
+                     Water _ -> image "images/player_swim_right.png"
+                     _       -> image "images/player_right.png"
+                 Standing ->
+                   case p ^. standingOn of
+                     Water _ -> image "images/player_swim_down.png"
+                     _       -> image "images/player_down.png"
 
 data GameState = GameState {
                     _tiles :: [Tile],

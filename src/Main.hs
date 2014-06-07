@@ -31,6 +31,7 @@ stepGame = do
         y += tileSize
     _ -> return ()
   curTile <- tilePosToTile Current
+  player.standingOn .= curTile
   checkCurTile curTile
 
 maybeDisableInput = do

@@ -120,7 +120,7 @@ chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
               Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 1) -- where is 6 coming from? magic number...
 
 gameState = x .~ startX $ y .~ startY $ gs
-  where player_ = (Player Standing def)
+  where player_ = (Player Standing (Empty def) def)
         gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False False False False False False False def
         startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
         startY = (4 - snd chipStart) * tileSize
