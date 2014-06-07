@@ -10,40 +10,65 @@ main = do
 
 stepGame :: GameMonad ()
 stepGame = do
-    gs <- get
-    curTile <- tilePosToTile Current
-    if (not $ gs ^. hasIceSkates)
-      then do
-        case curTile of
-          Ice            _ -> disableInput .= True
-          IceBottomLeft  _ -> disableInput .= True
-          IceBottomRight _ -> disableInput .= True
-          IceTopLeft     _ -> disableInput .= True
-          IceTopRight    _ -> disableInput .= True
-          _                -> do
-            when (gs ^. disableInput) $ do
-              player.direction .= Standing
-              disableInput .= False
-      else disableInput .= False               
-    case gs ^. player.direction of
-      DirLeft  -> do
-        maybeMove TileLeft $ do
-          player.x -= tileSize
-          x += tileSize
-      DirRight -> do
-        maybeMove TileRight $ do
-          player.x += tileSize
-          x -= tileSize
-      DirUp    -> do
-        maybeMove TileAbove $ do
-          player.y += tileSize
-          y -= tileSize
-      DirDown  -> do
-        maybeMove TileBelow $ do
-          player.y -= tileSize
-          y += tileSize
-      _ -> return ()
-    checkCurTile curTile
+  gs <- get
+  maybeDisableInput
+  case gs ^. player.direction of
+    DirLeft  -> do
+      maybeMove TileLeft $ do
+        player.x -= tileSize
+        x += tileSize
+    DirRight -> do
+      maybeMove TileRight $ do
+        player.x += tileSize
+        x -= tileSize
+    DirUp    -> do
+      maybeMove TileAbove $ do
+        player.y += tileSize
+        y -= tileSize
+    DirDown  -> do
+      maybeMove TileBelow $ do
+        player.y -= tileSize
+        y += tileSize
+    _ -> return ()
+  curTile <- tilePosToTile Current
+  checkCurTile curTile
+
+maybeDisableInput = do
+  curTile <- tilePosToTile Current
+  gs <- get    
+  case curTile of
+    Ice            _ -> do
+      when (not $ gs ^. hasIceSkates) $
+        disableInput .= True
+    IceBottomLeft  _ -> do
+      when (not $ gs ^. hasIceSkates) $
+        disableInput .= True
+    IceBottomRight _ -> do
+      when (not $ gs ^. hasIceSkates) $
+        disableInput .= True
+    IceTopLeft     _ -> do
+      when (not $ gs ^. hasIceSkates) $
+        disableInput .= True
+    IceTopRight    _ -> do
+      when (not $ gs ^. hasIceSkates) $
+        disableInput .= True
+    FFLeft         _ -> do
+      when (not $ gs ^. hasFFShoes) $
+        disableInput .= True
+    FFRight        _ -> do
+      when (not $ gs ^. hasFFShoes) $
+        disableInput .= True
+    FFUp           _ -> do
+      when (not $ gs ^. hasFFShoes) $
+        disableInput .= True
+    FFDown         _ -> do
+      when (not $ gs ^. hasFFShoes) $
+        disableInput .= True
+    _                -> do
+      when (gs ^. disableInput) $ do
+        player.direction .= Standing
+        disableInput .= False
+    
 
 checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
@@ -156,6 +181,26 @@ checkCurTile (IceBottomRight _) = do
         player.x -= tileSize
         x += tileSize
       _ -> return ()
+checkCurTile (FFLeft _) = do
+  gs <- get
+  when (not . _hasFFShoes $ gs) $ do
+    player.x -= tileSize
+    x += tileSize
+checkCurTile (FFRight _) = do
+  gs <- get
+  when (not . _hasFFShoes $ gs) $ do
+    player.x += tileSize
+    x -= tileSize
+checkCurTile (FFUp _) = do
+  gs <- get
+  when (not . _hasFFShoes $ gs) $ do
+    player.y += tileSize
+    y -= tileSize
+checkCurTile (FFDown _) = do
+  gs <- get
+  when (not . _hasFFShoes $ gs) $ do
+    player.y -= tileSize
+    y += tileSize
 checkCurTile (FFShoes _) = do
   hasFFShoes .= True
   setTile Current (Empty def)
