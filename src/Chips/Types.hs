@@ -213,4 +213,4 @@ instance Renderable GameState where
 
 type GameMonad a = StateT GameState IO a
 
-data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight deriving Show
+data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight | Arbitrary Int deriving Show

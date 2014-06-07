@@ -34,6 +34,12 @@ stepGame = do
   player.standingOn .= curTile
   checkCurTile curTile
 
+  cur <- liftIO getCurrentTime
+  last <- liftIO $ readIORef lastTick
+  when (diffUTCTime last cur < moveSpeed) $ do
+    liftIO $ lastTick $= cur
+    moveBees
+
 maybeDisableInput = do
   curTile <- tilePosToTile Current
   gs <- get    

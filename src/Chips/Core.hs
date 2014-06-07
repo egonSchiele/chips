@@ -26,7 +26,7 @@ die = do
 
 tileMap :: [[Int]]
 tileMap = unsafePerformIO $ do
-    contents <- B.readFile "maps/3.json"
+    contents <- B.readFile "maps/2.json"
     let decoded = eitherDecode contents :: Either String [[Int]]
     case decoded of
       Left err -> error err
@@ -56,6 +56,7 @@ tilePosToIndex pos = do
       TileRight -> playerIdx + 1
       TileAbove -> playerIdx - boardW
       TileBelow -> playerIdx + boardW
+      Arbitrary i -> i
 
 tilePosToTile :: TilePos -> GameMonad Tile
 tilePosToTile pos = do
@@ -117,10 +118,48 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
 chipStart :: (Float, Float)
 chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
               Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
-              Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 1) -- where is 6 coming from? magic number...
+              Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 6) -- where is 6 coming from? magic number...
 
 gameState = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing (Empty def) def)
         gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False False False False False False False def
         startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
         startY = (4 - snd chipStart) * tileSize
+
+moveBees :: GameMonad ()
+moveBees = do
+    gs <- get
+    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+      case tile of
+        Bee _ _ -> moveBee i
+        _       -> return True
+    return ()
+
+-- Move this bee counter-clockwise around an object.
+moveBee :: Int -> GameMonad Bool
+moveBee i = do
+    gs <- get
+    let bee = (gs ^. tiles) !! i
+        goLeft  = moveIfEmpty (i - 1) DirLeft
+        goRight = moveIfEmpty (i + 1) DirRight
+        goUp    = moveIfEmpty (i - boardW) DirUp
+        goDown  = moveIfEmpty (i + boardW) DirDown
+        moveIfEmpty moveI dir =
+          case (gs ^. tiles) !! moveI of
+            Empty _ -> do
+              setTile (Arbitrary i) (Empty def)
+              setTile (Arbitrary moveI) (Bee dir def)
+              return True
+            _ -> return False
+    case _beeDirection bee of
+      DirUp    -> goLeft  <||> goUp    <||> goRight <||> goDown
+      DirLeft  -> goDown  <||> goLeft  <||> goUp    <||> goRight
+      DirDown  -> goRight <||> goDown  <||> goLeft  <||> goUp
+      DirRight -> goUp    <||> goRight <||> goDown  <||> goLeft
+
+(<||>) :: GameMonad Bool -> GameMonad Bool -> GameMonad Bool
+a <||> b = do
+  res <- a
+  if res
+    then return True
+    else b

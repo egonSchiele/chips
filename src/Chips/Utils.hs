@@ -9,6 +9,9 @@ for = flip map
 count :: Eq a => a -> [a] -> Int
 count x list = length $ filter (==x) list
 
+withIndices :: [a] -> [(a, Int)]
+withIndices arr = zip arr [0..(length arr - 1)]
+
 (//) :: Integral a => a -> a -> a
 a // b = floor $ (fromIntegral a) / (fromIntegral b)
 

@@ -12,6 +12,14 @@ lastPress = unsafePerformIO $ do
   now <- getCurrentTime
   newIORef now
 
+-- This is a game clock that keeps
+-- track of when to move a bee, a frog,
+-- etc.
+lastTick :: IORef UTCTime
+lastTick = unsafePerformIO $ do
+  now <- getCurrentTime
+  newIORef now
+
 -- if a user is holding a key down, move
 -- this fast (currently every 1/4 of a second)
 moveSpeed = -0.25
