@@ -116,10 +116,10 @@ checkCurTile (Water _) = do
   when (not . _hasFlippers $ gs) die
 checkCurTile (Fire _) = do
   gs <- get
-  when (not . _hasFireBoots $ gs) die
+  when (not _hasFireBoots $ gs) die
 checkCurTile (Ice _) = do
   gs <- get
-  when (not . _hasIceSkates $ gs) $ do
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
       DirLeft  -> do
           player.x -= tileSize
@@ -136,7 +136,7 @@ checkCurTile (Ice _) = do
       _ -> return ()
 checkCurTile (IceBottomLeft _) = do
   gs <- get
-  when (not . _hasIceSkates $ gs) $ do
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
       DirLeft -> do
         player.direction .= DirUp
@@ -149,7 +149,7 @@ checkCurTile (IceBottomLeft _) = do
       _ -> return ()
 checkCurTile (IceTopLeft _) = do
   gs <- get
-  when (not . _hasIceSkates $ gs) $ do
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
       DirLeft -> do
         player.direction .= DirDown
@@ -162,7 +162,7 @@ checkCurTile (IceTopLeft _) = do
       _ -> return ()
 checkCurTile (IceTopRight _) = do
   gs <- get
-  when (not . _hasIceSkates $ gs) $ do
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
       DirRight -> do
         player.direction .= DirDown
@@ -175,7 +175,7 @@ checkCurTile (IceTopRight _) = do
       _ -> return ()
 checkCurTile (IceBottomRight _) = do
   gs <- get
-  when (not . _hasIceSkates $ gs) $ do
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
       DirRight -> do
         player.direction .= DirUp
@@ -188,22 +188,22 @@ checkCurTile (IceBottomRight _) = do
       _ -> return ()
 checkCurTile (FFLeft _) = do
   gs <- get
-  when (not . _hasFFShoes $ gs) $ do
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
     player.x -= tileSize
     x += tileSize
 checkCurTile (FFRight _) = do
   gs <- get
-  when (not . _hasFFShoes $ gs) $ do
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
     player.x += tileSize
     x -= tileSize
 checkCurTile (FFUp _) = do
   gs <- get
-  when (not . _hasFFShoes $ gs) $ do
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
     player.y += tileSize
     y -= tileSize
 checkCurTile (FFDown _) = do
   gs <- get
-  when (not . _hasFFShoes $ gs) $ do
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
     player.y -= tileSize
     y += tileSize
 checkCurTile (FFShoes _) = do
