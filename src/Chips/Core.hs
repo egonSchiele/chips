@@ -167,7 +167,7 @@ gameState i = x .~ startX $ y .~ startY $ gs
         gs = GameState
               (renderedTiles tmap)
               (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_)
-              1
+              i
               0 0 0 False
               False False False False False
               False
