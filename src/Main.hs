@@ -41,39 +41,40 @@ stepGame = do
 
 maybeDisableInput = do
   curTile <- tilePosToTile Current
-  gs <- get    
-  case curTile of
-    Ice            _ -> do
-      when (not $ gs ^. hasIceSkates) $
-        disableInput .= True
-    IceBottomLeft  _ -> do
-      when (not $ gs ^. hasIceSkates) $
-        disableInput .= True
-    IceBottomRight _ -> do
-      when (not $ gs ^. hasIceSkates) $
-        disableInput .= True
-    IceTopLeft     _ -> do
-      when (not $ gs ^. hasIceSkates) $
-        disableInput .= True
-    IceTopRight    _ -> do
-      when (not $ gs ^. hasIceSkates) $
-        disableInput .= True
-    FFLeft         _ -> do
-      when (not $ gs ^. hasFFShoes) $
-        disableInput .= True
-    FFRight        _ -> do
-      when (not $ gs ^. hasFFShoes) $
-        disableInput .= True
-    FFUp           _ -> do
-      when (not $ gs ^. hasFFShoes) $
-        disableInput .= True
-    FFDown         _ -> do
-      when (not $ gs ^. hasFFShoes) $
-        disableInput .= True
-    _                -> do
-      when (gs ^. disableInput) $ do
-        player.direction .= Standing
-        disableInput .= False
+  gs <- get
+  when (not $ gs ^. godMode) $ do
+    case curTile of
+      Ice            _ -> do
+        when (not $ gs ^. hasIceSkates) $
+          disableInput .= True
+      IceBottomLeft  _ -> do
+        when (not $ gs ^. hasIceSkates) $
+          disableInput .= True
+      IceBottomRight _ -> do
+        when (not $ gs ^. hasIceSkates) $
+          disableInput .= True
+      IceTopLeft     _ -> do
+        when (not $ gs ^. hasIceSkates) $
+          disableInput .= True
+      IceTopRight    _ -> do
+        when (not $ gs ^. hasIceSkates) $
+          disableInput .= True
+      FFLeft         _ -> do
+        when (not $ gs ^. hasFFShoes) $
+          disableInput .= True
+      FFRight        _ -> do
+        when (not $ gs ^. hasFFShoes) $
+          disableInput .= True
+      FFUp           _ -> do
+        when (not $ gs ^. hasFFShoes) $
+          disableInput .= True
+      FFDown         _ -> do
+        when (not $ gs ^. hasFFShoes) $
+          disableInput .= True
+      _                -> do
+        when (gs ^. disableInput) $ do
+          player.direction .= Standing
+          disableInput .= False
     
 
 checkCurTile :: Tile -> GameMonad ()
@@ -116,7 +117,7 @@ checkCurTile (Water _) = do
   when (not . _hasFlippers $ gs) die
 checkCurTile (Fire _) = do
   gs <- get
-  when (not _hasFireBoots $ gs) die
+  when (not . _hasFireBoots $ gs) die
 checkCurTile (Ice _) = do
   gs <- get
   when (not $ _hasIceSkates gs || _godMode gs) $ do
