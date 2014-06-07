@@ -109,9 +109,8 @@ checkCurTile (LockRed _) = do
   redKeyCount -= 1
   setTile Current (Empty def)
 checkCurTile (GateFinal _) = do
-  -- let lvl = _level gs
-  return ()
-  -- put $ LevelComplete lvl def
+  gs <- get
+  put $ gameState (gs ^. level + 1)
 checkCurTile (Water _) = do
   gs <- get
   when (not . _hasFlippers $ gs) die
