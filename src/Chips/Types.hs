@@ -189,8 +189,6 @@ data GameState = GameState {
                     _tiles :: [Tile],
                     _player :: Player,
                     _level :: Int,
-                    _levelName :: String,
-                    _password :: String,
                     _redKeyCount :: Int,
                     _blueKeyCount :: Int,
                     _yellowKeyCount :: Int,

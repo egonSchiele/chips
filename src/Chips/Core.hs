@@ -12,28 +12,70 @@ chipsLeft gs = length $ filter isChip (_tiles gs)
 tileSize = 32
 soundDir = "sounds/"
 
--- oof :: IO ()
+levelNames = [
+  "LESSON 1",
+  "LESSON 2",
+  "LESSON 3",
+  "LESSON 4",
+  "LESSON 5",
+  "LESSON 6",
+  "LESSON 7",
+  "LESSON 8",
+  "NUTS AND BOLTS",
+  "BRUSHFIRE",
+  "TRINITY",
+  "HUNT",
+  "SOUTHPOLE",
+  "TELEBLOCK",
+  "ELEMENTARY",
+  "CELLBLOCKED",
+  "NICE DAY",
+  "CASTLE MOAT",
+  "DIGGER",
+  "TOSSED SALAD"
+  ]
+
+passwords = [
+  "BDHP",
+  "JXMJ",
+  "ECBQ",
+  "YMCJ",
+  "TQKB",
+  "WNLD",
+  "FXQO",
+  "NHAG",
+  "KCRE",
+  "UVWS",
+  "CNPE",
+  "WVHI",
+  "OCKS"
+  ]
+
+
+oof :: GameMonad ()
 oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 
--- bummer :: IO ()
+bummer :: GameMonad ()
 bummer = liftIO $ playSound (soundDir ++ "bummer.wav") False
 
--- die :: IO GameState
+die :: GameMonad ()
 die = do
   gs <- get
   when (not $ gs ^. godMode) $ do
-    bummer >> put gameState
+    bummer >> put (gameState (gs ^. level))
 
-tileMap :: [[Int]]
-tileMap = unsafePerformIO $ do
-    contents <- B.readFile "maps/2.json"
+-- given a number, returns the 2-d array that represents the tilemap for
+-- that level.
+tileMap :: Int -> IO [[Int]]
+tileMap i = do
+    contents <- B.readFile $ "maps/" ++ (show i) ++ ".json"
     let decoded = eitherDecode contents :: Either String [[Int]]
     case decoded of
       Left err -> error err
       Right map -> return map
 
-boardW = length . head $ tileMap
-boardH = length tileMap
+boardW = 32 -- length . head $ tileMap
+boardH = 32 -- length tileMap
 
 playerCoords :: GameState -> (Int, Int)
 playerCoords gs = ((floor (p ^. x)) // tileSize, (((boardH * tileSize) - (floor (p ^. y))) // tileSize)-1)
@@ -72,7 +114,10 @@ setTile pos tile = do
     let attrs_ = ((gs ^. tiles) !! i) ^. attrs
     tiles.(ix i) .= (attrs .~ attrs_ $ tile)
 
-renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
+-- Given a tilemap (gotten with the `tileMap` function),
+-- returns a list of all the tiles
+renderedTiles :: [[Int]] -> [Tile]
+renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
     where f 0  = Empty def -- 0 == where chip will be
           f 1  = Empty def
           f 2  = Wall def
@@ -114,17 +159,27 @@ renderedTiles = renderTileMap tileMap f (tileSize, tileSize)
           f 38 = Water def
           f 39 = Worm DirUp def
 
--- | (x, y) of chip's start position (marked as a 0 on the tile map)
-chipStart :: (Float, Float)
-chipStart = case findIndex (\xs -> 0 `elem` xs) tileMap of
-              Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
-              Just y -> (fromIntegral . fromJust $ findIndex (==0) (tileMap !! y), fromIntegral $ y + 6) -- where is 6 coming from? magic number...
-
-gameState = x .~ startX $ y .~ startY $ gs
+-- Given a level number, returns the starting game state for that level
+gameState :: Int -> GameState
+gameState i = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing (Empty def) def)
-        gs = GameState renderedTiles (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_) 1 "LESSON 1" "BDHP" 0 0 0 False False False False False False False def
+        tmap = unsafePerformIO $ tileMap i
+        gs = GameState
+              (renderedTiles tmap)
+              (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_)
+              1
+              0 0 0 False
+              False False False False False
+              False
+              def
         startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
         startY = (4 - snd chipStart) * tileSize
+        -- | (x, y) of chip's start position (marked as a 0 on the tile map)
+        chipStart :: (Float, Float)
+        chipStart = case findIndex (\xs -> 0 `elem` xs) tmap of
+                      Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
+                      Just y -> (fromIntegral . fromJust $ findIndex (==0) (tmap !! y), fromIntegral $ y + 6) -- where is 6 coming from? magic number...
+
 
 moveBees :: GameMonad ()
 moveBees = do

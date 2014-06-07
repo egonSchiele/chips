@@ -3,10 +3,9 @@
 import Chips
 
 main = do
-    print chipStart
     playSound (soundDir ++ "chips01.wav") True
                                                                     -- move this logic to ActionKid instead
-    run "chips challenge" (9 * tileSize, 9 * tileSize) gameState on (\_ gs -> execStateT stepGame gs)
+    run "chips challenge" (9 * tileSize, 9 * tileSize) (gameState 1) on (\_ gs -> execStateT stepGame gs)
 
 stepGame :: GameMonad ()
 stepGame = do
@@ -234,8 +233,6 @@ checkCurTile (Frog _ _) = die
 checkCurTile (Tank _ _) = die
 checkCurTile (Worm _ _) = die
 checkCurTile (Bomb _) = die
-
-
 checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
