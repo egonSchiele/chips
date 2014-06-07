@@ -229,6 +229,11 @@ checkCurTile (Sand False _) = do
     DirRight -> moveSand TileRight
     DirUp    -> moveSand TileAbove
     DirDown  -> moveSand TileBelow
+checkCurTile (Bee _ _) = die
+checkCurTile (Frog _ _) = die
+checkCurTile (Tank _ _) = die
+checkCurTile (Worm _ _) = die
+checkCurTile (Bomb _) = die
 
 
 checkCurTile _ = return ()
