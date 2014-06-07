@@ -176,10 +176,10 @@ gameState i = x .~ startX $ y .~ startY $ gs
         startY = (4 - snd chipStart) * tileSize
         -- | (x, y) of chip's start position (marked as a 0 on the tile map)
         chipStart :: (Float, Float)
-        chipStart = case findIndex (\xs -> 0 `elem` xs) tmap of
-                      Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
-                      Just y -> (fromIntegral . fromJust $ findIndex (==0) (tmap !! y), fromIntegral $ y + 6) -- where is 6 coming from? magic number...
-
+        chipStart =
+          case findIndex (\xs -> 0 `elem` xs) tmap of
+            Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
+            Just y -> (fromIntegral . fromJust $ findIndex (==0) (tmap !! y), boardH - 1 - (fromIntegral y))
 
 moveBees :: GameMonad ()
 moveBees = do

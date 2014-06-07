@@ -58,6 +58,10 @@ on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
 
 on (EventKey (SpecialKey KeySpace) Down _ _) gs = do
     return $ godMode .~ True $ gs
+on (EventKey (Char '1') Down _ _) gs = return $ gameState 1
+on (EventKey (Char '2') Down _ _) gs = return $ gameState 2
+on (EventKey (Char '3') Down _ _) gs = return $ gameState 3
+
 on _ gs = do
     if gs ^. disableInput
       then return gs
