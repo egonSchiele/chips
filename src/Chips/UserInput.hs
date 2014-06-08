@@ -28,44 +28,40 @@ moveSpeed = -0.25
 resetMoveTime :: IO ()
 resetMoveTime = modifyIORef lastPress (addUTCTime moveSpeed)
 
-on (EventKey (SpecialKey KeyLeft) Down _ _) gs = do
-    if gs ^. disableInput
-      then return gs
-      else do
-        resetMoveTime
-        return $ player.direction .~ DirLeft $ gs
+on :: Event -> GameMonad ()
+on (EventKey (SpecialKey KeyLeft) Down _ _) = do
+  gs <- get
+  when (not $ gs ^. disableInput) $ do
+    liftIO resetMoveTime
+    player.direction .= DirLeft
 
-on (EventKey (SpecialKey KeyRight) Down _ _) gs = do
-    if gs ^. disableInput
-      then return gs
-      else do
-        resetMoveTime
-        return $ player.direction .~ DirRight $ gs
+on (EventKey (SpecialKey KeyRight) Down _ _) = do
+  gs <- get
+  when (not $ gs ^. disableInput) $ do
+    liftIO resetMoveTime
+    player.direction .= DirRight
 
-on (EventKey (SpecialKey KeyUp) Down _ _) gs = do
-    if gs ^. disableInput
-      then return gs
-      else do
-        resetMoveTime
-        return $ player.direction .~ DirUp $ gs
+on (EventKey (SpecialKey KeyUp) Down _ _) = do
+  gs <- get
+  when (not $ gs ^. disableInput) $ do
+    liftIO resetMoveTime
+    player.direction .= DirUp
 
-on (EventKey (SpecialKey KeyDown) Down _ _) gs = do
-    if gs ^. disableInput
-      then return gs
-      else do
-        resetMoveTime
-        return $ player.direction .~ DirDown $ gs
+on (EventKey (SpecialKey KeyDown) Down _ _) = do
+  gs <- get
+  when (not $ gs ^. disableInput) $ do
+    liftIO resetMoveTime
+    player.direction .= DirDown
 
-on (EventKey (SpecialKey KeySpace) Down _ _) gs = do
-    return $ godMode .~ True $ gs
-on (EventKey (Char '1') Down _ _) gs = return $ gameState 1
-on (EventKey (Char '2') Down _ _) gs = return $ gameState 2
-on (EventKey (Char '3') Down _ _) gs = return $ gameState 3
+on (EventKey (SpecialKey KeySpace) Down _ _) = godMode .= True
+on (EventKey (Char '1') Down _ _) = put $ gameState 1
+on (EventKey (Char '2') Down _ _) = put $ gameState 2
+on (EventKey (Char '3') Down _ _) = put $ gameState 3
 
-on _ gs = do
-    if gs ^. disableInput
-      then return gs
-      else return $ player.direction .~ Standing $ gs
+on _ = do
+    gs <- get
+    when (not $ gs ^. disableInput) $ do
+      player.direction .= Standing
 
 maybeMove :: TilePos -> GameMonad () -> GameMonad ()
 maybeMove tilePos newGs = do
