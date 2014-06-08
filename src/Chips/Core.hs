@@ -152,12 +152,14 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 31 = IceTopLeft def
           f 32 = IceTopRight def
           f 33 = Ice def
-          f 34 = Sand False def
+          f 34 = Sand (Empty def) def
           f 35 = Spy def
           f 36 = Tank DirUp def
           f 37 = WaterSplash def
           f 38 = Water def
           f 39 = Worm DirUp def
+          f 40 = Sand (Chip def) def
+          f 41 = Sand (Fire def) def
 
 -- Given a level number, returns the starting game state for that level
 gameState :: Int -> GameState

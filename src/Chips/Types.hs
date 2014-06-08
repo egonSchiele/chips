@@ -40,7 +40,7 @@ data Tile = Empty Attributes
           | IceTopLeft Attributes
           | IceTopRight Attributes
           | Ice Attributes
-          | Sand { _inWater :: Bool, _sandAttrs :: Attributes }
+          | Sand { _tileBeneath :: Tile, _sandAttrs :: Attributes }
           | Spy Attributes
           | Tank { _tankDirection :: Direction, _tankAttrs :: Attributes }
           | WaterSplash Attributes

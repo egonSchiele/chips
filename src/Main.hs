@@ -219,8 +219,8 @@ checkCurTile (Flippers _) = do
 checkCurTile (IceSkates _) = do
   hasIceSkates .= True
   setTile Current (Empty def)
-checkCurTile (Sand True _) = setTile Current (Empty def)
-checkCurTile (Sand False _) = do
+checkCurTile (Sand (Water _) _) = setTile Current (Empty def)
+checkCurTile (Sand _ _) = do
   gs <- get
   case gs ^. player.direction of
     Standing -> error "standing on sand?"
@@ -238,8 +238,11 @@ checkCurTile _ = return ()
 -- moveSand :: Int -> GameState -> IO GameState
 moveSand destPos = do
     destTile <- tilePosToTile destPos
-    let intoWater = case destTile of
-                    Water _ -> True
-                    _ -> False
-    setTile Current (Empty def)
-    setTile destPos (Sand intoWater def)
+    curTile <- tilePosToTile Current
+    case curTile of
+      Sand t _ -> do
+        setTile Current t
+        player.standingOn .= t
+        checkCurTile t
+        setTile destPos (Sand destTile def)
+      _ -> error "current tile isn't a sand tile. How did you get here?"
