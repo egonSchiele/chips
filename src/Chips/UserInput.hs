@@ -3,22 +3,7 @@ import Chips.Types
 import Chips.Utils
 import Chips.Common
 import Chips.Core
-
--- this keeps track of when we last moved.
--- So if the user is holding a key down, we
--- don't want to move too fast.
-lastPress :: IORef UTCTime
-lastPress = unsafePerformIO $ do
-  now <- getCurrentTime
-  newIORef now
-
--- This is a game clock that keeps
--- track of when to move a bee, a frog,
--- etc.
-lastTick :: IORef UTCTime
-lastTick = unsafePerformIO $ do
-  now <- getCurrentTime
-  newIORef now
+import Chips.Globals
 
 -- if a user is holding a key down, move
 -- this fast (currently every 1/4 of a second)

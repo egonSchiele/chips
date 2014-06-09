@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
 {-# OPTIONS_GHC -fno-full-laziness -fno-cse #-}
 import Chips
-
 main = do
     -- playSound (soundDir ++ "chips01.wav") True
                                                                     -- move this logic to ActionKid instead
@@ -30,6 +29,10 @@ stepGame i = do
         y += tileSize
     _ -> return ()
   curTile <- tilePosToTile Current
+  curI <- tilePosToIndex Current
+  curLocation_ <- liftIO $ readIORef curLocation
+  liftIO $ prevLocation $= curLocation_
+  liftIO $ curLocation $= curI
   player.standingOn .= curTile
   checkCurTile curTile
 
