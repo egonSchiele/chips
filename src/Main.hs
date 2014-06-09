@@ -255,7 +255,7 @@ moveSand destPos = do
     case curTile of
       Sand t _ -> do
         setTile Current t
+        setTile destPos (Sand destTile def)
         player.standingOn .= t
         checkCurTile t
-        setTile destPos (Sand destTile def)
       _ -> error "current tile isn't a sand tile. How did you get here?"

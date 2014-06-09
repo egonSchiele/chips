@@ -87,6 +87,7 @@ maybeMove tilePos newGs = do
         gs <- get
         case tile of
           Wall _ -> oof
+          ToggleDoor False _ -> oof
           LockRed _    -> if _redKeyCount gs > 0 || gs ^. godMode
                             then newGs
                             else oof
