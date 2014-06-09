@@ -246,8 +246,8 @@ isButton _               = False
 -- When the item gets moved to a location with a button,
 -- that button will get pressed. If there's a trap there,
 -- the item will now be in the trap.
-moveTile :: Int -> Int -> GameMonad ()
-moveTile from to = do
+moveTile :: Int -> Int -> Maybe Direction -> GameMonad Bool
+moveTile from to newDir = do
   gs <- get
   let fromTile = (gs ^. tiles) !! from
       toTile = (gs ^. tiles) !! to
@@ -264,39 +264,42 @@ moveTile from to = do
           _ -> Empty def
       newToTile =
         case fromTile of
-          Tank dir _ _ -> Tank dir toTile def
-          Bee dir _ _ -> Bee dir toTile def
-          Frog dir _ _ -> Frog dir toTile def
+          Tank dir _ _ -> Tank (fromMaybe dir newDir) toTile def
+          Bee dir _ _ -> Bee (fromMaybe dir newDir) toTile def
+          Frog dir _ _ -> Frog (fromMaybe dir newDir) toTile def
           Sand _ _ -> Sand toTile def
-          Worm dir _ _ -> Worm dir toTile def
-          BallPink dir _ _ -> BallPink dir toTile def
-          Rocket dir _ _ -> Rocket dir toTile def
-          Fireball dir _ _ -> Fireball dir toTile def
+          Worm dir _ _ -> Worm (fromMaybe dir newDir) toTile def
+          BallPink dir _ _ -> BallPink (fromMaybe dir newDir) toTile def
+          Rocket dir _ _ -> Rocket (fromMaybe dir newDir) toTile def
+          Fireball dir _ _ -> Fireball (fromMaybe dir newDir) toTile def
           _ -> fromTile
   setTile (Arbitrary from) tileUnder
   case toTile of
     Trap _ _ -> setTile (Arbitrary to) (Trap fromTile def)
     _ -> setTile (Arbitrary to) newToTile
   when (isButton toTile) $ checkCurTile toTile
+  return True
 
 -- given a tile and a direction, move it in that direction
 -- if there are no walls or anything. Used to move enemies.
 -- The last param is a function that takes a tile type and
 -- returns the appropriate action. This is because some
 -- enemies respond differently to different tiles.
-maybeMoveTile :: Int -> Direction -> ((Tile, Int) -> GameMonad ()) -> GameMonad ()
+maybeMoveTile :: Int -> Direction -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 maybeMoveTile i dir func = do
   gs <- get
   let moveIfEmpty moveI = do
         case (gs ^. tiles) !! moveI of
-          Empty _ -> moveTile i moveI
-          ButtonRed _ -> moveTile i moveI
-          ButtonBrown _ _ -> moveTile i moveI
-          ButtonBlue _ -> moveTile i moveI
-          ButtonGreen _ -> moveTile i moveI
-          ToggleDoor True _ -> moveTile i moveI
-          Trap _ _ -> moveTile i moveI
-          x -> func (x, moveI)
+          Empty _ -> moveTile i moveI (Just dir)
+          ButtonRed _ -> moveTile i moveI (Just dir)
+          ButtonBrown _ _ -> moveTile i moveI (Just dir)
+          ButtonBlue _ -> moveTile i moveI (Just dir)
+          ButtonGreen _ -> moveTile i moveI (Just dir)
+          ToggleDoor True _ -> moveTile i moveI (Just dir)
+          Trap _ _ -> moveTile i moveI (Just dir)
+          x -> case func of
+                 Nothing -> return False
+                 Just f -> f (x, moveI)
   case dir of
     DirLeft  -> moveIfEmpty (i - 1)
     DirRight -> moveIfEmpty (i + 1)
@@ -308,42 +311,35 @@ moveEnemies = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      Tank dir _ _   -> maybeMoveTile i dir $ \_ -> return ()
-      Rocket dir _ _ -> maybeMoveTile i dir $ \_ -> return ()
-      BallPink dir tileUnder _ -> maybeMoveTile i dir $ \_ -> do
+      Tank dir _ _   -> maybeMoveTile i dir Nothing
+      Rocket dir _ _ -> maybeMoveTile i dir Nothing
+      BallPink dir tileUnder _ -> maybeMoveTile i dir $ Just $ \_ -> do
                                     setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
-      Fireball dir _ _ -> maybeMoveTile i dir $ \(tile, moveI) ->
+                                    return True
+      Fireball dir _ _ -> maybeMoveTile i dir $ Just $ \(tile, moveI) ->
                             case tile of
-                              Fire _ -> moveTile i moveI
-                              Water _ -> setTile (Arbitrary i) (Empty def)
-                              _ -> return ()
+                              Fire _ -> moveTile i moveI (Just dir)
+                              Water _ -> setTile (Arbitrary i) (Empty def) >> return True
+                              _ -> return True
       Bee _ _ _ -> moveBee i
-      _       -> return ()
+      _       -> return False
   return ()
 
 -- Move this bee counter-clockwise around an object.
-moveBee :: Int -> GameMonad ()
+moveBee :: Int -> GameMonad Bool
 moveBee i = do
     gs <- get
     let bee = (gs ^. tiles) !! i
-        goLeft  = moveIfEmpty (i - 1) DirLeft
-        goRight = moveIfEmpty (i + 1) DirRight
-        goUp    = moveIfEmpty (i - boardW) DirUp
-        goDown  = moveIfEmpty (i + boardW) DirDown
-        moveIfEmpty moveI dir = do
-          case (gs ^. tiles) !! moveI of
-            Empty _ -> do
-              setTile (Arbitrary i) (_tileUnderBee bee)
-              setTile (Arbitrary moveI) (Bee dir (Empty def) def)
-              when (isButton (_tileUnderBee bee)) $ checkCurTile (_tileUnderBee bee)
-              return True
-            _ -> return False
+        goLeft  = maybeMoveTile i DirLeft Nothing
+        goRight = maybeMoveTile i DirRight Nothing
+        goUp    = maybeMoveTile i DirUp Nothing
+        goDown  = maybeMoveTile i DirDown Nothing
     case _beeDirection bee of
       DirUp    -> goLeft  <||> goUp    <||> goRight <||> goDown
       DirLeft  -> goDown  <||> goLeft  <||> goUp    <||> goRight
       DirDown  -> goRight <||> goDown  <||> goLeft  <||> goUp
       DirRight -> goUp    <||> goRight <||> goDown  <||> goLeft
-    return ()
+    return True
 
 (<||>) :: GameMonad Bool -> GameMonad Bool -> GameMonad Bool
 a <||> b = do
