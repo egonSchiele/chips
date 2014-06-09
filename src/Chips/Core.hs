@@ -55,6 +55,9 @@ passwords = [
 oof :: GameMonad ()
 oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 
+win :: GameMonad ()
+win = liftIO $ playSound (soundDir ++ "win.wav") False
+
 bummer :: GameMonad ()
 bummer = liftIO $ playSound (soundDir ++ "bummer.wav") False
 
@@ -212,65 +215,90 @@ isButton (ButtonGreen _) = True
 isButton (ButtonBrown _) = True
 isButton _               = False
 
-moveTanks :: GameMonad ()
-moveTanks = do
+-- move a tile from one location to another. Generally
+-- used to move tanks, frogs, other enemies. If the enemy
+-- had a special tile under them (like a button, for example),
+-- that special tile won't be erased.
+-- When the item gets moved to a location with a button,
+-- that button will get pressed. If there's a trap there,
+-- the item will now be in the trap.
+moveTile :: Int -> Int -> GameMonad ()
+moveTile from to = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-    case tile of
-      Tank dir tileUnder _ -> do
-        let moveIfEmpty moveI = do
-              case (gs ^. tiles) !! moveI of
-                Empty _ -> do
-                  setTile (Arbitrary i) tileUnder
-                  setTile (Arbitrary moveI) (Tank dir (Empty def) def)
-                  when (isButton tileUnder) $ checkCurTile tileUnder
-                _ -> return ()
-        case dir of
-          DirLeft  -> moveIfEmpty (i - 1)
-          DirRight -> moveIfEmpty (i + 1)
-          DirUp    -> moveIfEmpty (i - boardW)
-          DirDown  -> moveIfEmpty (i + boardW)
-      _       -> return ()
-  return ()
+  let fromTile = (gs ^. tiles) !! from
+      toTile = (gs ^. tiles) !! to
+      tileUnder = 
+        case fromTile of
+          Tank _ t _ -> t
+          Bee _ t _ -> t
+          Frog _ t _ -> t
+          Sand t _ -> t
+          Worm _ t _ -> t
+          BallPink _ t _ -> t
+          Rocket _ t _ -> t
+          Fireball _ t _ -> t
+          _ -> Empty def
+      newToTile =
+        case fromTile of
+          Tank dir _ _ -> Tank dir toTile def
+          Bee dir _ _ -> Bee dir toTile def
+          Frog dir _ _ -> Frog dir toTile def
+          Sand _ _ -> Sand toTile def
+          Worm dir _ _ -> Worm dir toTile def
+          BallPink dir _ _ -> BallPink dir toTile def
+          Rocket dir _ _ -> Rocket dir toTile def
+          Fireball dir _ _ -> Fireball dir toTile def
+          _ -> fromTile
+  setTile (Arbitrary from) tileUnder
+  case toTile of
+    Trap _ _ -> setTile (Arbitrary to) (Trap fromTile def)
+    _ -> setTile (Arbitrary to) newToTile
+  when (isButton toTile) $ checkCurTile toTile
 
-moveBalls :: GameMonad ()
-moveBalls = do
+-- given a tile and a direction, move it in that direction
+-- if there are no walls or anything. Used to move enemies.
+-- The last param is a function that takes a tile type and
+-- returns the appropriate action. This is because some
+-- enemies respond differently to different tiles.
+maybeMoveTile :: Int -> Direction -> ((Tile, Int) -> GameMonad ()) -> GameMonad ()
+maybeMoveTile i dir func = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-    case tile of
-      BallPink dir tileUnder _ -> do
-        let moveIfEmpty moveI = do
-              case (gs ^. tiles) !! moveI of
-                Empty _ -> do
-                  setTile (Arbitrary i) tileUnder
-                  setTile (Arbitrary moveI) (BallPink dir (Empty def) def)
-                ToggleDoor True _ -> do
-                  setTile (Arbitrary i) tileUnder
-                  setTile (Arbitrary moveI) (BallPink dir (ToggleDoor True def) def)
-                ButtonRed _ -> do
-                  setTile (Arbitrary i) tileUnder
-                  setTile (Arbitrary moveI) (BallPink dir (ButtonRed def) def)
-                _ -> setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
-              when (isButton tileUnder) $ checkCurTile tileUnder
-        case dir of
-          DirLeft  -> moveIfEmpty (i - 1)
-          DirRight -> moveIfEmpty (i + 1)
-          DirUp    -> moveIfEmpty (i - boardW)
-          DirDown  -> moveIfEmpty (i + boardW)
-      _       -> return ()
-  return ()
+  let moveIfEmpty moveI = do
+        case (gs ^. tiles) !! moveI of
+          Empty _ -> moveTile i moveI
+          ButtonRed _ -> moveTile i moveI
+          ButtonBrown _ -> moveTile i moveI
+          ButtonBlue _ -> moveTile i moveI
+          ButtonGreen _ -> moveTile i moveI
+          ToggleDoor True _ -> moveTile i moveI
+          Trap (Empty _) _ -> moveTile i moveI
+          x -> func (x, moveI)
+  case dir of
+    DirLeft  -> moveIfEmpty (i - 1)
+    DirRight -> moveIfEmpty (i + 1)
+    DirUp    -> moveIfEmpty (i - boardW)
+    DirDown  -> moveIfEmpty (i + boardW)
 
-moveBees :: GameMonad ()
-moveBees = do
+moveEnemies :: GameMonad ()
+moveEnemies = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
+      Tank dir tileUnder _   -> maybeMoveTile i dir $ \_ -> return ()
+      Rocket dir tileUnder _ -> maybeMoveTile i dir $ \_ -> return ()
+      BallPink dir tileUnder _ -> maybeMoveTile i dir $ \_ -> do
+                                    setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
+      Fireball dir tileUnder _ -> maybeMoveTile i dir $ \(tile, moveI) ->
+                                    case tile of
+                                      Fire _ -> moveTile i moveI
+                                      Water _ -> setTile (Arbitrary i) (Empty def)
+                                      _ -> return ()
       Bee _ _ _ -> moveBee i
-      _       -> return True
+      _       -> return ()
   return ()
 
 -- Move this bee counter-clockwise around an object.
-moveBee :: Int -> GameMonad Bool
+moveBee :: Int -> GameMonad ()
 moveBee i = do
     gs <- get
     let bee = (gs ^. tiles) !! i
@@ -291,6 +319,7 @@ moveBee i = do
       DirLeft  -> goDown  <||> goLeft  <||> goUp    <||> goRight
       DirDown  -> goRight <||> goDown  <||> goLeft  <||> goUp
       DirRight -> goUp    <||> goRight <||> goDown  <||> goLeft
+    return ()
 
 (<||>) :: GameMonad Bool -> GameMonad Bool -> GameMonad Bool
 a <||> b = do
@@ -327,7 +356,9 @@ checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
   liftIO $ playSound (soundDir ++ "collect_chip.wav") False
   setTile Current (Empty def)
-checkCurTile (Gate _) = setTile Current (Empty def)
+checkCurTile (Gate _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
+  setTile Current (Empty def)
 checkCurTile (KeyYellow _) = do
   yellowKeyCount += 1
   setTile Current (Empty def)
@@ -356,6 +387,7 @@ checkCurTile (LockRed _) = do
   redKeyCount -= 1
   setTile Current (Empty def)
 checkCurTile (GateFinal _) = do
+  win
   gs <- get
   put $ gameState (gs ^. level + 1)
 checkCurTile (Water _) = do

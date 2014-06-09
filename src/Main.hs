@@ -37,10 +37,7 @@ stepGame i = do
   last <- liftIO $ readIORef lastTick
   when (diffUTCTime last cur < moveSpeed) $ do
     liftIO $ lastTick $= cur
-    moveBees
-    moveTanks
-    moveBalls
-    -- moveFireballs
+    moveEnemies
 
 maybeDisableInput = do
   curTile <- tilePosToTile Current
