@@ -284,15 +284,15 @@ moveEnemies = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      Tank dir tileUnder _   -> maybeMoveTile i dir $ \_ -> return ()
-      Rocket dir tileUnder _ -> maybeMoveTile i dir $ \_ -> return ()
+      Tank dir _ _   -> maybeMoveTile i dir $ \_ -> return ()
+      Rocket dir _ _ -> maybeMoveTile i dir $ \_ -> return ()
       BallPink dir tileUnder _ -> maybeMoveTile i dir $ \_ -> do
                                     setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
-      Fireball dir tileUnder _ -> maybeMoveTile i dir $ \(tile, moveI) ->
-                                    case tile of
-                                      Fire _ -> moveTile i moveI
-                                      Water _ -> setTile (Arbitrary i) (Empty def)
-                                      _ -> return ()
+      Fireball dir _ _ -> maybeMoveTile i dir $ \(tile, moveI) ->
+                            case tile of
+                              Fire _ -> moveTile i moveI
+                              Water _ -> setTile (Arbitrary i) (Empty def)
+                              _ -> return ()
       Bee _ _ _ -> moveBee i
       _       -> return ()
   return ()
@@ -332,25 +332,6 @@ opposite DirUp = DirDown
 opposite DirDown = DirUp
 opposite DirLeft = DirRight
 opposite DirRight = DirLeft
-
-generateFireballs :: GameMonad ()
-generateFireballs = do
-  gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-    case tile of
-      GeneratorFireball dir _ -> do
-        let genAt loc = do
-              let oldTile = (gs ^. tiles) !! loc
-              setTile (Arbitrary loc) (Fireball dir oldTile def)
-        case dir of
-          DirLeft  -> genAt (i - 1)
-          DirRight -> genAt (i + 1)
-          DirUp    -> genAt (i - boardW)
-          DirDown  -> genAt (i + boardW)
-      _       -> return ()
-  return ()
-
-
 
 checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
@@ -518,8 +499,30 @@ checkCurTile (ButtonBlue _) = do
     case tile of
       Tank dir tileUnder _ -> setTile (Arbitrary i) (Tank (opposite dir) tileUnder def)
       _       -> return ()
-checkCurTile (ButtonRed _) = generateFireballs
-
+checkCurTile (ButtonRed _) = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      GeneratorFireball dir _ -> do
+        let genAt loc = do
+              let oldTile = (gs ^. tiles) !! loc
+              setTile (Arbitrary loc) (Fireball dir oldTile def)
+        case dir of
+          DirLeft  -> genAt (i - 1)
+          DirRight -> genAt (i + 1)
+          DirUp    -> genAt (i - boardW)
+          DirDown  -> genAt (i + boardW)
+      _       -> return ()
+  return ()
+checkCurTile (ButtonBrown _) = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Trap t _ ->
+        case t of
+          Rocket dir _ _ -> maybeMoveTile i dir $ \_ -> return ()
+          _ -> return ()
+      _ -> return ()
 checkCurTile (Bee _ _ _) = die
 checkCurTile (Frog _ _ _) = die
 checkCurTile (Tank _ _ _) = die
