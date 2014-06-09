@@ -489,35 +489,32 @@ checkCurTile (Sand _ _) = do
     DirUp    -> moveSand TileAbove
     DirDown  -> moveSand TileBelow
 checkCurTile (ButtonGreen _) = do
-  once $ do
-    gs <- get
-    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-      case tile of
-        ToggleDoor x _ -> setTile (Arbitrary i) (ToggleDoor (not x) def)
-        _       -> return ()
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      ToggleDoor x _ -> setTile (Arbitrary i) (ToggleDoor (not x) def)
+      _       -> return ()
 checkCurTile (ButtonBlue _) = do
-  once $ do
-    gs <- get
-    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-      case tile of
-        Tank dir tileUnder _ -> setTile (Arbitrary i) (Tank (opposite dir) tileUnder def)
-        _       -> return ()
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Tank dir tileUnder _ -> setTile (Arbitrary i) (Tank (opposite dir) tileUnder def)
+      _       -> return ()
 checkCurTile (ButtonRed _) = do
-  once $ do
-    gs <- get
-    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-      case tile of
-        GeneratorFireball dir _ -> do
-          let genAt loc = do
-                let oldTile = (gs ^. tiles) !! loc
-                setTile (Arbitrary loc) (Fireball dir oldTile def)
-          case dir of
-            DirLeft  -> genAt (i - 1)
-            DirRight -> genAt (i + 1)
-            DirUp    -> genAt (i - boardW)
-            DirDown  -> genAt (i + boardW)
-        _       -> return ()
-    return ()
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      GeneratorFireball dir _ -> do
+        let genAt loc = do
+              let oldTile = (gs ^. tiles) !! loc
+              setTile (Arbitrary loc) (Fireball dir oldTile def)
+        case dir of
+          DirLeft  -> genAt (i - 1)
+          DirRight -> genAt (i + 1)
+          DirUp    -> genAt (i - boardW)
+          DirDown  -> genAt (i + boardW)
+      _       -> return ()
+  return ()
 
 checkCurTile (ButtonBrown _) = do
   gs <- get

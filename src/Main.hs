@@ -34,7 +34,11 @@ stepGame i = do
   liftIO $ prevLocation $= curLocation_
   liftIO $ curLocation $= curI
   player.standingOn .= curTile
-  checkCurTile curTile
+  case curTile of
+    ButtonRed   _ -> once $ checkCurTile curTile
+    ButtonBlue  _ -> once $ checkCurTile curTile
+    ButtonGreen _ -> once $ checkCurTile curTile
+    _ -> checkCurTile curTile
 
   cur <- liftIO getCurrentTime
   last <- liftIO $ readIORef lastTick
