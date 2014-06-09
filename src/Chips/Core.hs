@@ -178,8 +178,11 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 57 = Fireball DirDown (Empty def) def
           f 58 = Fireball DirLeft (Empty def) def
           f 59 = Fireball DirRight (Empty def) def
-          f 60 = GeneratorFireball def
-          f 61 = Trap (Empty def) def
+          f 60 = GeneratorFireball DirUp def
+          f 61 = GeneratorFireball DirDown def
+          f 62 = GeneratorFireball DirLeft def
+          f 63 = GeneratorFireball DirRight def
+          f 64 = Trap (Empty def) def
 
 -- Given a level number, returns the starting game state for that level
 gameState :: Int -> GameState
@@ -203,6 +206,12 @@ gameState i = x .~ startX $ y .~ startY $ gs
             Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
             Just y -> (fromIntegral . fromJust $ findIndex (==0) (tmap !! y), boardH - 1 - (fromIntegral y))
 
+isButton (ButtonRed _)   = True
+isButton (ButtonBlue _)  = True
+isButton (ButtonGreen _) = True
+isButton (ButtonBrown _) = True
+isButton _               = False
+
 moveTanks :: GameMonad ()
 moveTanks = do
   gs <- get
@@ -214,6 +223,7 @@ moveTanks = do
                 Empty _ -> do
                   setTile (Arbitrary i) tileUnder
                   setTile (Arbitrary moveI) (Tank dir (Empty def) def)
+                  when (isButton tileUnder) $ checkCurTile tileUnder
                 _ -> return ()
         case dir of
           DirLeft  -> moveIfEmpty (i - 1)
@@ -234,10 +244,14 @@ moveBalls = do
                 Empty _ -> do
                   setTile (Arbitrary i) tileUnder
                   setTile (Arbitrary moveI) (BallPink dir (Empty def) def)
+                ToggleDoor True _ -> do
+                  setTile (Arbitrary i) tileUnder
+                  setTile (Arbitrary moveI) (BallPink dir (ToggleDoor True def) def)
                 ButtonRed _ -> do
                   setTile (Arbitrary i) tileUnder
                   setTile (Arbitrary moveI) (BallPink dir (ButtonRed def) def)
                 _ -> setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
+              when (isButton tileUnder) $ checkCurTile tileUnder
         case dir of
           DirLeft  -> moveIfEmpty (i - 1)
           DirRight -> moveIfEmpty (i + 1)
@@ -264,11 +278,12 @@ moveBee i = do
         goRight = moveIfEmpty (i + 1) DirRight
         goUp    = moveIfEmpty (i - boardW) DirUp
         goDown  = moveIfEmpty (i + boardW) DirDown
-        moveIfEmpty moveI dir =
+        moveIfEmpty moveI dir = do
           case (gs ^. tiles) !! moveI of
             Empty _ -> do
               setTile (Arbitrary i) (_tileUnderBee bee)
               setTile (Arbitrary moveI) (Bee dir (Empty def) def)
+              when (isButton (_tileUnderBee bee)) $ checkCurTile (_tileUnderBee bee)
               return True
             _ -> return False
     case _beeDirection bee of
@@ -288,3 +303,209 @@ opposite DirUp = DirDown
 opposite DirDown = DirUp
 opposite DirLeft = DirRight
 opposite DirRight = DirLeft
+
+generateFireballs :: GameMonad ()
+generateFireballs = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      GeneratorFireball dir _ -> do
+        let genAt loc = do
+              let oldTile = (gs ^. tiles) !! loc
+              setTile (Arbitrary loc) (Fireball dir oldTile def)
+        case dir of
+          DirLeft  -> genAt (i - 1)
+          DirRight -> genAt (i + 1)
+          DirUp    -> genAt (i - boardW)
+          DirDown  -> genAt (i + boardW)
+      _       -> return ()
+  return ()
+
+
+
+checkCurTile :: Tile -> GameMonad ()
+checkCurTile (Chip _) = do
+  liftIO $ playSound (soundDir ++ "collect_chip.wav") False
+  setTile Current (Empty def)
+checkCurTile (Gate _) = setTile Current (Empty def)
+checkCurTile (KeyYellow _) = do
+  yellowKeyCount += 1
+  setTile Current (Empty def)
+checkCurTile (KeyBlue _) = do
+  blueKeyCount += 1
+  setTile Current (Empty def)
+checkCurTile (KeyGreen _) = do
+  hasGreenKey .= True
+  setTile Current (Empty def)
+checkCurTile (KeyRed _) = do
+  redKeyCount += 1
+  setTile Current (Empty def)
+checkCurTile (LockYellow _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
+  yellowKeyCount -= 1
+  setTile Current (Empty def)
+checkCurTile (LockBlue _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
+  blueKeyCount -= 1
+  setTile Current (Empty def)
+checkCurTile (LockGreen _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
+  setTile Current (Empty def)
+checkCurTile (LockRed _) = do
+  liftIO $ playSound (soundDir ++ "door.wav") False
+  redKeyCount -= 1
+  setTile Current (Empty def)
+checkCurTile (GateFinal _) = do
+  gs <- get
+  put $ gameState (gs ^. level + 1)
+checkCurTile (Water _) = do
+  gs <- get
+  when (not . _hasFlippers $ gs) die
+checkCurTile (Fire _) = do
+  gs <- get
+  when (not . _hasFireBoots $ gs) die
+checkCurTile (Ice _) = do
+  gs <- get
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
+    case gs ^. player.direction of
+      DirLeft  -> do
+          player.x -= tileSize
+          x += tileSize
+      DirRight -> do
+          player.x += tileSize
+          x -= tileSize
+      DirUp    -> do
+          player.y += tileSize
+          y -= tileSize
+      DirDown  -> do
+          player.y -= tileSize
+          y += tileSize
+      _ -> return ()
+checkCurTile (IceBottomLeft _) = do
+  gs <- get
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
+    case gs ^. player.direction of
+      DirLeft -> do
+        player.direction .= DirUp
+        player.y += tileSize
+        y -= tileSize
+      DirDown -> do
+        player.direction .= DirRight
+        player.x += tileSize
+        x -= tileSize
+      _ -> return ()
+checkCurTile (IceTopLeft _) = do
+  gs <- get
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
+    case gs ^. player.direction of
+      DirLeft -> do
+        player.direction .= DirDown
+        player.y -= tileSize
+        y += tileSize
+      DirUp -> do
+        player.direction .= DirRight
+        player.x += tileSize
+        x -= tileSize
+      _ -> return ()
+checkCurTile (IceTopRight _) = do
+  gs <- get
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
+    case gs ^. player.direction of
+      DirRight -> do
+        player.direction .= DirDown
+        player.y -= tileSize
+        y += tileSize
+      DirUp -> do
+        player.direction .= DirLeft
+        player.x -= tileSize
+        x += tileSize
+      _ -> return ()
+checkCurTile (IceBottomRight _) = do
+  gs <- get
+  when (not $ _hasIceSkates gs || _godMode gs) $ do
+    case gs ^. player.direction of
+      DirRight -> do
+        player.direction .= DirUp
+        player.y += tileSize
+        y -= tileSize
+      DirDown -> do
+        player.direction .= DirLeft
+        player.x -= tileSize
+        x += tileSize
+      _ -> return ()
+checkCurTile (FFLeft _) = do
+  gs <- get
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
+    player.x -= tileSize
+    x += tileSize
+checkCurTile (FFRight _) = do
+  gs <- get
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
+    player.x += tileSize
+    x -= tileSize
+checkCurTile (FFUp _) = do
+  gs <- get
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
+    player.y += tileSize
+    y -= tileSize
+checkCurTile (FFDown _) = do
+  gs <- get
+  when (not $ _hasFFShoes gs || _godMode gs) $ do
+    player.y -= tileSize
+    y += tileSize
+checkCurTile (FFShoes _) = do
+  hasFFShoes .= True
+  setTile Current (Empty def)
+checkCurTile (FireBoots _) = do
+  hasFireBoots .= True
+  setTile Current (Empty def)
+checkCurTile (Flippers _) = do
+  hasFlippers .= True
+  setTile Current (Empty def)
+checkCurTile (IceSkates _) = do
+  hasIceSkates .= True
+  setTile Current (Empty def)
+checkCurTile (Sand (Water _) _) = setTile Current (Empty def)
+checkCurTile (Sand _ _) = do
+  gs <- get
+  case gs ^. player.direction of
+    Standing -> error "standing on sand?"
+    DirLeft  -> moveSand TileLeft
+    DirRight -> moveSand TileRight
+    DirUp    -> moveSand TileAbove
+    DirDown  -> moveSand TileBelow
+checkCurTile (ButtonGreen _) = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      ToggleDoor x _ -> setTile (Arbitrary i) (ToggleDoor (not x) def)
+      _       -> return ()
+checkCurTile (ButtonBlue _) = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Tank dir tileUnder _ -> setTile (Arbitrary i) (Tank (opposite dir) tileUnder def)
+      _       -> return ()
+checkCurTile (ButtonRed _) = generateFireballs
+
+checkCurTile (Bee _ _ _) = die
+checkCurTile (Frog _ _ _) = die
+checkCurTile (Tank _ _ _) = die
+checkCurTile (Worm _ _ _) = die
+checkCurTile (Bomb _) = die
+checkCurTile (BallPink _ _ _) = die
+checkCurTile (Rocket _ _ _) = die
+checkCurTile (Fireball _ _ _) = die
+checkCurTile _ = return ()
+
+-- moveSand :: Int -> GameState -> IO GameState
+moveSand destPos = do
+    destTile <- tilePosToTile destPos
+    curTile <- tilePosToTile Current
+    case curTile of
+      Sand t _ -> do
+        setTile Current t
+        setTile destPos (Sand destTile def)
+        player.standingOn .= t
+        checkCurTile t
+      _ -> error "current tile isn't a sand tile. How did you get here?"

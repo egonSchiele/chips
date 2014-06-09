@@ -55,7 +55,7 @@ data Tile = Empty Attributes
           | BallPink { _ballDirection :: Direction, _tileUnderBall :: Tile, _tdAttrs :: Attributes }
           | Rocket   { _rocketDirection :: Direction, _tileUnderRocket :: Tile, _tdAttrs :: Attributes }
           | Fireball { _fireballDirection :: Direction, _tileUnderFireball :: Tile, _tdAttrs :: Attributes }
-          | GeneratorFireball Attributes
+          | GeneratorFireball { _generatorDir :: Direction, _gfAttrs :: Attributes }
           deriving (Show, Eq)
 
 deriveMC ''Tile
@@ -128,7 +128,7 @@ instance Renderable Tile where
     render (Rocket DirLeft _ _)   = image "images/rocket_left.png"
     render (Rocket DirRight _ _)  = image "images/rocket_right.png"
     render (Fireball _ _ _)       = image "images/fireball.png"
-    render (GeneratorFireball _) = image "images/generator_fireball.png"
+    render (GeneratorFireball _ _) = image "images/generator_fireball.png"
 
 data Player = Player {
                 _direction :: Direction,
