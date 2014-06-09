@@ -312,34 +312,65 @@ moveEnemies = do
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
       Tank dir _ _   -> maybeMoveTile i dir Nothing
-      Rocket dir _ _ -> maybeMoveTile i dir Nothing
+      Rocket dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
+                          case tile of
+                            Bomb _ -> do
+                              moveTile i moveI Nothing
+                              setTile (Arbitrary moveI) (Empty def)
+                              return True
+                            _ -> return False
       BallPink dir tileUnder _ -> maybeMoveTile i dir $ Just $ \_ -> do
                                     setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
                                     return True
-      Fireball dir _ _ -> maybeMoveTile i dir $ Just $ \(tile, moveI) ->
+      Fireball dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
                             case tile of
                               Fire _ -> moveTile i moveI (Just dir)
                               Water _ -> setTile (Arbitrary i) (Empty def) >> return True
-                              _ -> return True
-      Bee _ _ _ -> moveBee i
+                              _ -> return False
+      Bee _ _ _ -> moveClockwise i Nothing
       _       -> return False
   return ()
 
 -- Move this bee counter-clockwise around an object.
-moveBee :: Int -> GameMonad Bool
-moveBee i = do
+moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
+moveClockwise i func = do
     gs <- get
-    let bee = (gs ^. tiles) !! i
-        goLeft  = maybeMoveTile i DirLeft Nothing
-        goRight = maybeMoveTile i DirRight Nothing
-        goUp    = maybeMoveTile i DirUp Nothing
-        goDown  = maybeMoveTile i DirDown Nothing
-    case _beeDirection bee of
+    let enemy = (gs ^. tiles) !! i
+        goLeft  = maybeMoveTile i DirLeft func
+        goRight = maybeMoveTile i DirRight func
+        goUp    = maybeMoveTile i DirUp func
+        goDown  = maybeMoveTile i DirDown func
+    case enemyDirection enemy of
       DirUp    -> goLeft  <||> goUp    <||> goRight <||> goDown
       DirLeft  -> goDown  <||> goLeft  <||> goUp    <||> goRight
       DirDown  -> goRight <||> goDown  <||> goLeft  <||> goUp
       DirRight -> goUp    <||> goRight <||> goDown  <||> goLeft
-    return True
+
+-- move clockwise, but not around an object...just keep going as far as
+-- you can, and when you hit a wall, turn.
+moveClockwiseLong :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
+moveClockwiseLong i func = do
+    gs <- get
+    let enemy = (gs ^. tiles) !! i
+        goLeft  = maybeMoveTile i DirLeft func
+        goRight = maybeMoveTile i DirRight func
+        goUp    = maybeMoveTile i DirUp func
+        goDown  = maybeMoveTile i DirDown func
+    case enemyDirection enemy of
+      DirUp    -> goUp    <||> goLeft  <||> goRight <||> goDown
+      DirLeft  -> goLeft  <||> goDown  <||> goUp    <||> goRight
+      DirDown  -> goDown  <||> goRight  <||> goLeft  <||> goUp
+      DirRight -> goRight <||> goUp    <||> goDown  <||> goLeft
+
+enemyDirection :: Tile -> Direction
+enemyDirection (Bee dir _ _) = dir
+enemyDirection (Frog dir _ _) = dir
+enemyDirection (Tank dir _ _) = dir
+enemyDirection (Worm dir _ _) = dir
+enemyDirection (BallPink dir _ _) = dir
+enemyDirection (Rocket dir _ _) = dir
+enemyDirection (Fireball dir _ _) = dir
+enemyDirection x = error $ "don't know how to find direction for enemy: " ++ (show x)
 
 (<||>) :: GameMonad Bool -> GameMonad Bool -> GameMonad Bool
 a <||> b = do
