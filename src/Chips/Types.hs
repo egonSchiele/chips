@@ -51,6 +51,11 @@ data Tile = Empty Attributes
           | ButtonRed Attributes
           | ButtonGreen Attributes
           | ToggleDoor { _open :: Bool, _tdAttrs :: Attributes }
+          | Trap { _inTrap :: Tile, _tdAttrs :: Attributes }
+          | BallPink { _ballDirection :: Direction, _tdAttrs :: Attributes }
+          | Rocket   { _rocketDirection :: Direction, _tdAttrs :: Attributes }
+          | Fireball { _fireballDirection :: Direction, _tdAttrs :: Attributes }
+          | GeneratorFireball Attributes
           deriving (Show, Eq)
 
 deriveMC ''Tile
@@ -113,6 +118,17 @@ instance Renderable Tile where
     render (ButtonGreen _)      = image "images/button_green.png"
     render (ToggleDoor True _)  = image "images/toggle_door_open.png"
     render (ToggleDoor False _) = image "images/toggle_door_closed.png"
+    render (Trap tile _)        =
+      case tile of
+        Empty _ -> image "images/trap.png"
+        _ -> render tile
+    render (BallPink _ _)       = image "images/ball_pink.png"
+    render (Rocket DirUp _)     = image "images/rocket_up.png"
+    render (Rocket DirDown _)   = image "images/rocket_down.png"
+    render (Rocket DirLeft _)   = image "images/rocket_left.png"
+    render (Rocket DirRight _)  = image "images/rocket_right.png"
+    render (Fireball _ _)       = image "images/fireball.png"
+    render (GeneratorFireball _) = image "images/generator_fireball.png"
 
 data Player = Player {
                 _direction :: Direction,

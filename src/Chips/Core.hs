@@ -166,6 +166,20 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 45 = ButtonGreen def
           f 46 = ToggleDoor True def
           f 47 = ToggleDoor False def
+          f 48 = BallPink DirRight def
+          f 49 = BallPink DirLeft def
+          f 50 = BallPink DirUp def
+          f 51 = BallPink DirDown def
+          f 52 = Rocket DirUp def
+          f 53 = Rocket DirDown def
+          f 54 = Rocket DirLeft def
+          f 55 = Rocket DirRight def
+          f 56 = Fireball DirUp def
+          f 57 = Fireball DirDown def
+          f 58 = Fireball DirLeft def
+          f 59 = Fireball DirRight def
+          f 60 = GeneratorFireball def
+          f 61 = Trap (Empty def) def
 
 -- Given a level number, returns the starting game state for that level
 gameState :: Int -> GameState
