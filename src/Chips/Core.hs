@@ -271,7 +271,7 @@ maybeMoveTile i dir func = do
           ButtonBlue _ -> moveTile i moveI
           ButtonGreen _ -> moveTile i moveI
           ToggleDoor True _ -> moveTile i moveI
-          Trap (Empty _) _ -> moveTile i moveI
+          Trap _ _ -> moveTile i moveI
           x -> func (x, moveI)
   case dir of
     DirLeft  -> moveIfEmpty (i - 1)
@@ -520,7 +520,7 @@ checkCurTile (ButtonBrown _) = do
     case tile of
       Trap t _ ->
         case t of
-          Rocket dir _ _ -> maybeMoveTile i dir $ \_ -> return ()
+          Rocket dir _ _ -> setTile (Arbitrary i) (Rocket dir (Trap (Empty def) def) def)
           _ -> return ()
       _ -> return ()
 checkCurTile (Bee _ _ _) = die
