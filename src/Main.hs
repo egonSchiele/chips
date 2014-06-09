@@ -38,6 +38,7 @@ stepGame i = do
   when (diffUTCTime last cur < moveSpeed) $ do
     liftIO $ lastTick $= cur
     moveBees
+    moveTanks
 
 maybeDisableInput = do
   curTile <- tilePosToTile Current
@@ -228,6 +229,18 @@ checkCurTile (Sand _ _) = do
     DirRight -> moveSand TileRight
     DirUp    -> moveSand TileAbove
     DirDown  -> moveSand TileBelow
+checkCurTile (ButtonGreen _) = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      ToggleDoor x _ -> setTile (Arbitrary i) (ToggleDoor (not x) def)
+      _       -> return ()
+checkCurTile (ButtonBlue _) = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Tank dir _ -> setTile (Arbitrary i) (Tank (opposite dir) def)
+      _       -> return ()
 checkCurTile (Bee _ _) = die
 checkCurTile (Frog _ _) = die
 checkCurTile (Tank _ _) = die

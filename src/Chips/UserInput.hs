@@ -57,6 +57,8 @@ on (EventKey (SpecialKey KeySpace) Down _ _) = godMode .= True
 on (EventKey (Char '1') Down _ _) = put $ gameState 1
 on (EventKey (Char '2') Down _ _) = put $ gameState 2
 on (EventKey (Char '3') Down _ _) = put $ gameState 3
+on (EventKey (Char '4') Down _ _) = put $ gameState 4
+on (EventKey (Char '5') Down _ _) = put $ gameState 5
 
 on _ = do
     gs <- get

@@ -160,6 +160,12 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 39 = Worm DirUp def
           f 40 = Sand (Chip def) def
           f 41 = Sand (Fire def) def
+          f 42 = ButtonBlue def
+          f 43 = ButtonBrown def
+          f 44 = ButtonRed def
+          f 45 = ButtonGreen def
+          f 46 = ToggleDoor True def
+          f 47 = ToggleDoor False def
 
 -- Given a level number, returns the starting game state for that level
 gameState :: Int -> GameState
@@ -183,14 +189,34 @@ gameState i = x .~ startX $ y .~ startY $ gs
             Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
             Just y -> (fromIntegral . fromJust $ findIndex (==0) (tmap !! y), boardH - 1 - (fromIntegral y))
 
+moveTanks :: GameMonad ()
+moveTanks = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Tank dir _ -> do
+        let moveIfEmpty moveI = do
+              case (gs ^. tiles) !! moveI of
+                Empty _ -> do
+                  setTile (Arbitrary i) (Empty def)
+                  setTile (Arbitrary moveI) (Tank dir def)
+                _ -> return ()
+        case dir of
+          DirLeft  -> moveIfEmpty (i - 1)
+          DirRight -> moveIfEmpty (i + 1)
+          DirUp    -> moveIfEmpty (i - boardW)
+          DirDown  -> moveIfEmpty (i + boardW)
+      _       -> return ()
+  return ()
+
 moveBees :: GameMonad ()
 moveBees = do
-    gs <- get
-    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-      case tile of
-        Bee _ _ -> moveBee i
-        _       -> return True
-    return ()
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Bee _ _ -> moveBee i
+      _       -> return True
+  return ()
 
 -- Move this bee counter-clockwise around an object.
 moveBee :: Int -> GameMonad Bool
@@ -220,3 +246,8 @@ a <||> b = do
   if res
     then return True
     else b
+
+opposite DirUp = DirDown
+opposite DirDown = DirUp
+opposite DirLeft = DirRight
+opposite DirRight = DirLeft
