@@ -16,3 +16,6 @@ withIndices arr = zip arr [0..(length arr - 1)]
 a // b = floor $ (fromIntegral a) / (fromIntegral b)
 
 ($=) ref val = modifyIORef ref (const val)
+
+setValue :: [a] -> Int -> (a -> a) -> [a]
+setValue list index func = (take (index) list) ++ [func (list !! index)] ++ (drop (index+1) list)

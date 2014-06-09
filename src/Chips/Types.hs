@@ -6,6 +6,7 @@ import ActionKid
 import Graphics.Gloss hiding (display)
 
 data Direction = DirUp | DirDown | DirLeft | DirRight | Standing deriving (Show, Eq)
+data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight | Arbitrary Int | Coords (Int, Int) deriving (Show, Eq)
 
 data Tile = Empty Attributes
           | Wall  Attributes
@@ -47,7 +48,7 @@ data Tile = Empty Attributes
           | Water Attributes
           | Worm { _wormDirection :: Direction, _tileUnderWorm :: Tile, _wormAttrs :: Attributes }
           | ButtonBlue Attributes
-          | ButtonBrown Attributes
+          | ButtonBrown { _trapLocation :: TilePos, _bbAttrs :: Attributes }
           | ButtonRed Attributes
           | ButtonGreen Attributes
           | ToggleDoor { _open :: Bool, _tdAttrs :: Attributes }
@@ -113,7 +114,7 @@ instance Renderable Tile where
     render (Worm DirLeft _ _)     = image "images/worm_left.png"
     render (Worm DirRight _ _)    = image "images/worm_right.png"
     render (ButtonBlue _)       = image "images/button_blue.png"
-    render (ButtonBrown _)      = image "images/button_brown.png"
+    render (ButtonBrown _ _)      = image "images/button_brown.png"
     render (ButtonRed _)        = image "images/button_red.png"
     render (ButtonGreen _)      = image "images/button_green.png"
     render (ToggleDoor True _)  = image "images/toggle_door_open.png"
@@ -238,4 +239,4 @@ instance Renderable GameState where
 
 type GameMonad a = StateT GameState IO a
 
-data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight | Arbitrary Int deriving Show
+type LevelNumber = Int

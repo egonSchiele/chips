@@ -52,6 +52,13 @@ passwords = [
   "OCKS"
   ]
 
+-- each brown button is associated with a specific trap. There's no way to
+-- encode this information in the tilemap, so it lives in this array
+-- instead.
+-- [(level number, [(position of button, position of trap it controls)]]
+trapButtons :: [(LevelNumber, [(Int, Int)])]
+trapButtons = [(5, [(240, 242),
+                    (336, 338)])]
 
 oof :: GameMonad ()
 oof = liftIO $ playSound (soundDir ++ "oof.wav") False
@@ -76,7 +83,7 @@ tileMap i = do
     let decoded = eitherDecode contents :: Either String [[Int]]
     case decoded of
       Left err -> error err
-      Right map -> return map
+      Right tmap -> return tmap
 
 boardW = 32 -- length . head $ tileMap
 boardH = 32 -- length tileMap
@@ -103,6 +110,7 @@ tilePosToIndex pos = do
       TileAbove -> playerIdx - boardW
       TileBelow -> playerIdx + boardW
       Arbitrary i -> i
+      Coords (x, y) -> (x - 1) + boardW * (y - 1)
 
 tilePosToTile :: TilePos -> GameMonad Tile
 tilePosToTile pos = do
@@ -165,7 +173,8 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 40 = Sand (Chip def) def
           f 41 = Sand (Fire def) def
           f 42 = ButtonBlue def
-          f 43 = ButtonBrown def
+          -- the locations of the traps get filled in later...
+          f 43 = ButtonBrown (Arbitrary 0) def
           f 44 = ButtonRed def
           f 45 = ButtonGreen def
           f 46 = ToggleDoor True def
@@ -188,13 +197,27 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 63 = GeneratorFireball DirRight def
           f 64 = Trap (Empty def) def
 
+-- tell all the brown buttons about the traps they are responsible for.
+wireTraps :: Int -> [Tile] -> [Tile]
+wireTraps i tmap =
+    case lookup i trapButtons of
+      Nothing -> tmap
+      (Just list) -> foldl func tmap list
+        where func tmap_ (i,j) = setValue tmap_ i $ \val ->
+                 case val of
+                   ButtonBrown _ attrs_ -> case (tmap !! j) of
+                     Trap _ _ -> ButtonBrown (Arbitrary j) attrs_
+                     x -> error $ "item at location j: " ++ (show j) ++ " is not a Trap. It is a " ++ (show x)
+                   _ -> error ("item at location i: " ++ (show i) ++ " is not a ButtonBrown. It is a " ++ (show $ tmap !! i))
+
 -- Given a level number, returns the starting game state for that level
 gameState :: Int -> GameState
 gameState i = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing (Empty def) def)
         tmap = unsafePerformIO $ tileMap i
+        finalMap = (wireTraps i) . renderedTiles $ tmap
         gs = GameState
-              (renderedTiles tmap)
+              finalMap
               (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_)
               i
               0 0 0 False
@@ -213,7 +236,7 @@ gameState i = x .~ startX $ y .~ startY $ gs
 isButton (ButtonRed _)   = True
 isButton (ButtonBlue _)  = True
 isButton (ButtonGreen _) = True
-isButton (ButtonBrown _) = True
+isButton (ButtonBrown _ _) = True
 isButton _               = False
 
 -- move a tile from one location to another. Generally
@@ -268,7 +291,7 @@ maybeMoveTile i dir func = do
         case (gs ^. tiles) !! moveI of
           Empty _ -> moveTile i moveI
           ButtonRed _ -> moveTile i moveI
-          ButtonBrown _ -> moveTile i moveI
+          ButtonBrown _ _ -> moveTile i moveI
           ButtonBlue _ -> moveTile i moveI
           ButtonGreen _ -> moveTile i moveI
           ToggleDoor True _ -> moveTile i moveI
@@ -516,15 +539,16 @@ checkCurTile (ButtonRed _) = do
       _       -> return ()
   return ()
 
-checkCurTile (ButtonBrown _) = do
+checkCurTile (ButtonBrown trapPos _) = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-    case tile of
-      Trap t _ ->
-        case t of
-          Rocket dir _ _ -> setTile (Arbitrary i) (Rocket dir (Trap (Empty def) def) def)
-          _ -> return ()
-      _ -> return ()
+  i <- tilePosToIndex trapPos
+  case (gs ^. tiles) !! i of
+    Trap t _ ->
+      case t of
+        -- free the rocket
+        Rocket dir _ _ -> setTile (Arbitrary i) (Rocket dir (Trap (Empty def) def) def)
+        _ -> return ()
+    _ -> return ()
 checkCurTile (Bee _ _ _) = die
 checkCurTile (Frog _ _ _) = die
 checkCurTile (Tank _ _ _) = die
