@@ -39,6 +39,7 @@ stepGame i = do
     liftIO $ lastTick $= cur
     moveBees
     moveTanks
+    moveBalls
 
 maybeDisableInput = do
   curTile <- tilePosToTile Current
@@ -239,12 +240,12 @@ checkCurTile (ButtonBlue _) = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      Tank dir _ -> setTile (Arbitrary i) (Tank (opposite dir) def)
+      Tank dir tileUnder _ -> setTile (Arbitrary i) (Tank (opposite dir) tileUnder def)
       _       -> return ()
-checkCurTile (Bee _ _) = die
-checkCurTile (Frog _ _) = die
-checkCurTile (Tank _ _) = die
-checkCurTile (Worm _ _) = die
+checkCurTile (Bee _ _ _) = die
+checkCurTile (Frog _ _ _) = die
+checkCurTile (Tank _ _ _) = die
+checkCurTile (Worm _ _ _) = die
 checkCurTile (Bomb _) = die
 checkCurTile _ = return ()
 

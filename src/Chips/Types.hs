@@ -22,7 +22,7 @@ data Tile = Empty Attributes
           | GateFinal Attributes
           | Help Attributes
           | Amoeba Attributes
-          | Bee { _beeDirection :: Direction, _beeAttrs :: Attributes }
+          | Bee { _beeDirection :: Direction, _tileUnderBee :: Tile, _beeAttrs :: Attributes }
           | Bomb Attributes
           | FFDown Attributes
           | FFLeft Attributes
@@ -33,28 +33,28 @@ data Tile = Empty Attributes
           | FireBoots Attributes
           | Fire Attributes
           | Flippers Attributes
-          | Frog { _frogDirection :: Direction, _frogAttrs :: Attributes }
+          | Frog { _frogDirection :: Direction, _tileUnderFrog :: Tile, _frogAttrs :: Attributes }
           | IceBottomLeft Attributes
           | IceBottomRight Attributes
           | IceSkates Attributes
           | IceTopLeft Attributes
           | IceTopRight Attributes
           | Ice Attributes
-          | Sand { _tileBeneath :: Tile, _sandAttrs :: Attributes }
+          | Sand { _tileUnderSand :: Tile, _sandAttrs :: Attributes }
           | Spy Attributes
-          | Tank { _tankDirection :: Direction, _tankAttrs :: Attributes }
+          | Tank { _tankDirection :: Direction, _tileUnderTank :: Tile, _tankAttrs :: Attributes }
           | WaterSplash Attributes
           | Water Attributes
-          | Worm { _wormDirection :: Direction, _wormAttrs :: Attributes }
+          | Worm { _wormDirection :: Direction, _tileUnderWorm :: Tile, _wormAttrs :: Attributes }
           | ButtonBlue Attributes
           | ButtonBrown Attributes
           | ButtonRed Attributes
           | ButtonGreen Attributes
           | ToggleDoor { _open :: Bool, _tdAttrs :: Attributes }
           | Trap { _inTrap :: Tile, _tdAttrs :: Attributes }
-          | BallPink { _ballDirection :: Direction, _tdAttrs :: Attributes }
-          | Rocket   { _rocketDirection :: Direction, _tdAttrs :: Attributes }
-          | Fireball { _fireballDirection :: Direction, _tdAttrs :: Attributes }
+          | BallPink { _ballDirection :: Direction, _tileUnderBall :: Tile, _tdAttrs :: Attributes }
+          | Rocket   { _rocketDirection :: Direction, _tileUnderRocket :: Tile, _tdAttrs :: Attributes }
+          | Fireball { _fireballDirection :: Direction, _tileUnderFireball :: Tile, _tdAttrs :: Attributes }
           | GeneratorFireball Attributes
           deriving (Show, Eq)
 
@@ -76,10 +76,10 @@ instance Renderable Tile where
     render (GateFinal _)        = image "images/gate_final1.png"
     render (Help _)             = image "images/help.png"
     render (Amoeba _)           = image "images/amoeba.png"
-    render (Bee DirUp _)        = image "images/bee_up.png"
-    render (Bee DirDown _)      = image "images/bee_down.png"
-    render (Bee DirLeft _)      = image "images/bee_left.png"
-    render (Bee DirRight _)     = image "images/bee_right.png"
+    render (Bee DirUp _ _)        = image "images/bee_up.png"
+    render (Bee DirDown _ _)      = image "images/bee_down.png"
+    render (Bee DirLeft _ _)      = image "images/bee_left.png"
+    render (Bee DirRight _ _)     = image "images/bee_right.png"
     render (Bomb _)             = image "images/bomb.png"
     render (FFDown _)           = image "images/ff_down.png"
     render (FFLeft _)           = image "images/ff_left.png"
@@ -90,10 +90,10 @@ instance Renderable Tile where
     render (FireBoots _)        = image "images/fire_boots.png"
     render (Fire _)             = image "images/fire.png"
     render (Flippers _)         = image "images/flippers.png"
-    render (Frog DirUp _)       = image "images/frog_up.png"
-    render (Frog DirDown _)     = image "images/frog_down.png"
-    render (Frog DirLeft _)     = image "images/frog_left.png"
-    render (Frog DirRight _)    = image "images/frog_right.png"
+    render (Frog DirUp _ _)       = image "images/frog_up.png"
+    render (Frog DirDown _ _)     = image "images/frog_down.png"
+    render (Frog DirLeft _ _)     = image "images/frog_left.png"
+    render (Frog DirRight _ _)    = image "images/frog_right.png"
     render (IceBottomLeft _)    = image "images/ice_bottom_left.png"
     render (IceBottomRight _)   = image "images/ice_bottom_right.png"
     render (IceSkates _)        = image "images/ice_skates.png"
@@ -102,16 +102,16 @@ instance Renderable Tile where
     render (Ice _)              = image "images/ice.png"
     render (Sand _ _)           = image "images/sand.png"
     render (Spy _)              = image "images/spy.png"
-    render (Tank DirUp _)       = image "images/tank_up.png"
-    render (Tank DirDown _)     = image "images/tank_down.png"
-    render (Tank DirLeft _)     = image "images/tank_left.png"
-    render (Tank DirRight _)    = image "images/tank_right.png"
+    render (Tank DirUp _ _)       = image "images/tank_up.png"
+    render (Tank DirDown _ _)     = image "images/tank_down.png"
+    render (Tank DirLeft _ _)     = image "images/tank_left.png"
+    render (Tank DirRight _ _)    = image "images/tank_right.png"
     render (WaterSplash _)      = image "images/water_splash.png"
     render (Water _)            = image "images/water.png"
-    render (Worm DirUp _)       = image "images/worm_up.png"
-    render (Worm DirDown _)     = image "images/worm_down.png"
-    render (Worm DirLeft _)     = image "images/worm_left.png"
-    render (Worm DirRight _)    = image "images/worm_right.png"
+    render (Worm DirUp _ _)       = image "images/worm_up.png"
+    render (Worm DirDown _ _)     = image "images/worm_down.png"
+    render (Worm DirLeft _ _)     = image "images/worm_left.png"
+    render (Worm DirRight _ _)    = image "images/worm_right.png"
     render (ButtonBlue _)       = image "images/button_blue.png"
     render (ButtonBrown _)      = image "images/button_brown.png"
     render (ButtonRed _)        = image "images/button_red.png"
@@ -122,12 +122,12 @@ instance Renderable Tile where
       case tile of
         Empty _ -> image "images/trap.png"
         _ -> render tile
-    render (BallPink _ _)       = image "images/ball_pink.png"
-    render (Rocket DirUp _)     = image "images/rocket_up.png"
-    render (Rocket DirDown _)   = image "images/rocket_down.png"
-    render (Rocket DirLeft _)   = image "images/rocket_left.png"
-    render (Rocket DirRight _)  = image "images/rocket_right.png"
-    render (Fireball _ _)       = image "images/fireball.png"
+    render (BallPink _ _ _)       = image "images/ball_pink.png"
+    render (Rocket DirUp _ _)     = image "images/rocket_up.png"
+    render (Rocket DirDown _ _)   = image "images/rocket_down.png"
+    render (Rocket DirLeft _ _)   = image "images/rocket_left.png"
+    render (Rocket DirRight _ _)  = image "images/rocket_right.png"
+    render (Fireball _ _ _)       = image "images/fireball.png"
     render (GeneratorFireball _) = image "images/generator_fireball.png"
 
 data Player = Player {

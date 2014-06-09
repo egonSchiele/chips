@@ -134,7 +134,7 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 13 = GateFinal def
           f 14 = Help def
           f 15 = Amoeba def
-          f 16 = Bee DirUp def
+          f 16 = Bee DirUp (Empty def) def
           f 17 = Bomb def
           f 18 = FFDown def
           f 19 = FFLeft def
@@ -145,7 +145,7 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 24 = FireBoots def
           f 25 = Fire def
           f 26 = Flippers def
-          f 27 = Frog DirUp def
+          f 27 = Frog DirUp (Empty def) def
           f 28 = IceBottomLeft def
           f 29 = IceBottomRight def
           f 30 = IceSkates def
@@ -154,10 +154,10 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 33 = Ice def
           f 34 = Sand (Empty def) def
           f 35 = Spy def
-          f 36 = Tank DirUp def
+          f 36 = Tank DirUp (Empty def) def
           f 37 = WaterSplash def
           f 38 = Water def
-          f 39 = Worm DirUp def
+          f 39 = Worm DirUp (Empty def) def
           f 40 = Sand (Chip def) def
           f 41 = Sand (Fire def) def
           f 42 = ButtonBlue def
@@ -166,18 +166,18 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 45 = ButtonGreen def
           f 46 = ToggleDoor True def
           f 47 = ToggleDoor False def
-          f 48 = BallPink DirRight def
-          f 49 = BallPink DirLeft def
-          f 50 = BallPink DirUp def
-          f 51 = BallPink DirDown def
-          f 52 = Rocket DirUp def
-          f 53 = Rocket DirDown def
-          f 54 = Rocket DirLeft def
-          f 55 = Rocket DirRight def
-          f 56 = Fireball DirUp def
-          f 57 = Fireball DirDown def
-          f 58 = Fireball DirLeft def
-          f 59 = Fireball DirRight def
+          f 48 = BallPink DirRight (Empty def) def
+          f 49 = BallPink DirLeft (Empty def) def
+          f 50 = BallPink DirUp (Empty def) def
+          f 51 = BallPink DirDown (Empty def) def
+          f 52 = Rocket DirUp (Empty def) def
+          f 53 = Rocket DirDown (Empty def) def
+          f 54 = Rocket DirLeft (Empty def) def
+          f 55 = Rocket DirRight (Empty def) def
+          f 56 = Fireball DirUp (Empty def) def
+          f 57 = Fireball DirDown (Empty def) def
+          f 58 = Fireball DirLeft (Empty def) def
+          f 59 = Fireball DirRight (Empty def) def
           f 60 = GeneratorFireball def
           f 61 = Trap (Empty def) def
 
@@ -208,13 +208,36 @@ moveTanks = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      Tank dir _ -> do
+      Tank dir tileUnder _ -> do
         let moveIfEmpty moveI = do
               case (gs ^. tiles) !! moveI of
                 Empty _ -> do
-                  setTile (Arbitrary i) (Empty def)
-                  setTile (Arbitrary moveI) (Tank dir def)
+                  setTile (Arbitrary i) tileUnder
+                  setTile (Arbitrary moveI) (Tank dir (Empty def) def)
                 _ -> return ()
+        case dir of
+          DirLeft  -> moveIfEmpty (i - 1)
+          DirRight -> moveIfEmpty (i + 1)
+          DirUp    -> moveIfEmpty (i - boardW)
+          DirDown  -> moveIfEmpty (i + boardW)
+      _       -> return ()
+  return ()
+
+moveBalls :: GameMonad ()
+moveBalls = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      BallPink dir tileUnder _ -> do
+        let moveIfEmpty moveI = do
+              case (gs ^. tiles) !! moveI of
+                Empty _ -> do
+                  setTile (Arbitrary i) tileUnder
+                  setTile (Arbitrary moveI) (BallPink dir (Empty def) def)
+                ButtonRed _ -> do
+                  setTile (Arbitrary i) tileUnder
+                  setTile (Arbitrary moveI) (BallPink dir (ButtonRed def) def)
+                _ -> setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
         case dir of
           DirLeft  -> moveIfEmpty (i - 1)
           DirRight -> moveIfEmpty (i + 1)
@@ -228,7 +251,7 @@ moveBees = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      Bee _ _ -> moveBee i
+      Bee _ _ _ -> moveBee i
       _       -> return True
   return ()
 
@@ -244,8 +267,8 @@ moveBee i = do
         moveIfEmpty moveI dir =
           case (gs ^. tiles) !! moveI of
             Empty _ -> do
-              setTile (Arbitrary i) (Empty def)
-              setTile (Arbitrary moveI) (Bee dir def)
+              setTile (Arbitrary i) (_tileUnderBee bee)
+              setTile (Arbitrary moveI) (Bee dir (Empty def) def)
               return True
             _ -> return False
     case _beeDirection bee of
