@@ -61,9 +61,10 @@ data Tile = Empty Attributes
           | BlueWall { _real :: Bool, _blueWallAttrs :: Attributes }
           | Gravel Attributes
           | FakeChip Attributes
-          | Teleporter { _destination :: TilePos, _teleAttrs :: Attributes }
+          | Teleporter { _upDest :: TilePos, _downDest :: TilePos, _leftDest :: TilePos, _rightDest :: TilePos, _teleAttrs :: Attributes }
           | RecessedWall Attributes
           | ThinWall { _dir :: Direction, _thinWallAttrs :: Attributes }
+          | Dirt Attributes
           deriving (Show, Eq)
 
 deriveMC ''Tile
@@ -141,7 +142,7 @@ instance Renderable Tile where
     render (BlueWall _ _)         = image "images/blue_wall.png"
     render (Gravel _)             = image "images/gravel.png"
     render (FakeChip _)           = image "images/chip.png"
-    render (Teleporter _ _)       = image "images/teleporter.png"
+    render (Teleporter _ _ _ _ _) = image "images/teleporter.png"
     render (RecessedWall _)       = image "images/recessed_wall.png"
     render (ThinWall dir _)       =
       case dir of
@@ -150,6 +151,7 @@ instance Renderable Tile where
         DirLeft -> image "images/thin_wall_left.png"
         DirRight -> image "images/thin_wall_right.png"
         Standing -> error "theres no such thing as a 'standing' thin wall"
+    render (Dirt _)               = image "images/dirt.png"
 
 data Player = Player {
                 _direction :: Direction,

@@ -46,6 +46,8 @@ on (EventKey (Char '4') Down _ _) = put $ gameState 4
 on (EventKey (Char '5') Down _ _) = put $ gameState 5
 on (EventKey (Char '6') Down _ _) = put $ gameState 6
 on (EventKey (Char '7') Down _ _) = put $ gameState 7
+on (EventKey (Char '8') Down _ _) = put $ gameState 8
+on (EventKey (Char '9') Down _ _) = put $ gameState 9
 
 on _ = do
     gs <- get
@@ -53,7 +55,8 @@ on _ = do
       player.direction .= Standing
 
 maybeMove :: TilePos -> GameMonad () -> GameMonad ()
-maybeMove tilePos newGs = do
+maybeMove tilePos newGs_ = do
+    let newGs = closeRecessedWall >> newGs_
     cur <- liftIO getCurrentTime
     last <- liftIO $ readIORef lastPress
     -- if we are holding a key down, we would move very fast.
@@ -100,19 +103,22 @@ maybeMove tilePos newGs = do
           Gate _       -> if chipsLeft gs == 0 || gs ^. godMode
                             then newGs
                             else oof
-          Sand _ _ -> do
-            i <- tilePosToIndex tilePos
-            -- the index of the tile that this block
-            -- of sand would be pushed to, if we allow the user to move
-            let moveIdx =
-                  case tilePos of
-                    TileLeft -> i - 1
-                    TileRight -> i + 1
-                    TileAbove -> i - boardW
-                    TileBelow -> i + boardW
-            let moveTile = (gs ^. tiles) !! moveIdx
-            case moveTile of
-              Empty _ -> newGs
+          Sand t _ -> do
+            case t of
               Water _ -> newGs
-              _ -> oof
+              _ -> do
+                i <- tilePosToIndex tilePos
+                -- the index of the tile that this block
+                -- of sand would be pushed to, if we allow the user to move
+                let moveIdx =
+                      case tilePos of
+                        TileLeft -> i - 1
+                        TileRight -> i + 1
+                        TileAbove -> i - boardW
+                        TileBelow -> i + boardW
+                let moveTile = (gs ^. tiles) !! moveIdx
+                case moveTile of
+                  Empty _ -> newGs
+                  Water _ -> newGs
+                  _ -> oof
           _ -> newGs

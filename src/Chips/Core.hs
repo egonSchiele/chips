@@ -60,6 +60,15 @@ trapButtons :: [(LevelNumber, [(Int, Int)])]
 trapButtons = [(5, [(240, 242),
                     (336, 338)])]
 
+-- [dest of teleport, dest if dirUp, dest if dirDown, dest if dirLeft, dest
+-- if dirRight]
+teleportDestinations :: [(LevelNumber, [(Int, Int, Int, Int, Int)])]
+teleportDestinations =
+    [(7, [(463,0,529+1,0,529+1),
+          (465,0,529+1,463-1,0),
+          (527,465-boardW,0,0,529+1),
+          (529,465-boardW,0,527-1,0)])]
+
 oof :: GameMonad ()
 oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 
@@ -202,12 +211,13 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 68 = BlueWall False def
           f 69 = Gravel def
           f 70 = FakeChip def
-          f 71 = Teleporter (Arbitrary 0) def
+          f 71 = Teleporter (Arbitrary 50) (Arbitrary 50) (Arbitrary 50) (Arbitrary 50) def
           f 72 = RecessedWall def
           f 73 = ThinWall DirUp def
           f 74 = ThinWall DirDown def
           f 75 = ThinWall DirLeft def
           f 76 = ThinWall DirRight def
+          f 77 = Dirt def
 
 -- tell all the brown buttons about the traps they are responsible for.
 wireTraps :: Int -> [Tile] -> [Tile]
@@ -220,14 +230,25 @@ wireTraps i tmap =
                    ButtonBrown _ attrs_ -> case (tmap !! j) of
                      Trap _ _ -> ButtonBrown (Arbitrary j) attrs_
                      x -> error $ "item at location j: " ++ (show j) ++ " is not a Trap. It is a " ++ (show x)
-                   _ -> error ("item at location i: " ++ (show i) ++ " is not a ButtonBrown. It is a " ++ (show $ tmap !! i))
+                   x -> error $ "item at location i: " ++ (show i) ++ " is not a ButtonBrown. It is a " ++ (show x)
+
+-- tell all the teleporters their teleport destinations
+wireTeleporters :: Int -> [Tile] -> [Tile]
+wireTeleporters i tmap =
+    case lookup i teleportDestinations of
+      Nothing -> tmap
+      (Just list) -> foldl func tmap list
+        where func tmap_ (i,u,d,l,r) = setValue tmap_ i $ \val ->
+                 case val of
+                   Teleporter _ _ _ _ attrs_ -> Teleporter (Arbitrary u) (Arbitrary d) (Arbitrary l) (Arbitrary r) attrs_
+                   x -> error $ "item at location i: " ++ (show i) ++ " is not a Teleporter It is a " ++ (show x)
 
 -- Given a level number, returns the starting game state for that level
 gameState :: Int -> GameState
 gameState i = x .~ startX $ y .~ startY $ gs
   where player_ = (Player Standing (Empty def) def)
         tmap = unsafePerformIO $ tileMap i
-        finalMap = (wireTraps i) . renderedTiles $ tmap
+        finalMap = (wireTeleporters i) . (wireTraps i) . renderedTiles $ tmap
         gs = GameState
               finalMap
               (x .~ ((fst chipStart)*tileSize) $ y .~ ((snd chipStart)*tileSize) $ player_)
@@ -596,6 +617,26 @@ checkCurTile (Bomb _) = die
 checkCurTile (BallPink _ _ _) = die
 checkCurTile (Rocket _ _ _) = die
 checkCurTile (Fireball _ _ _) = die
+checkCurTile (Teleporter u d l r _) = do
+  gs <- get
+  case gs ^. player.direction of
+    DirUp -> movePlayer u
+    DirDown -> movePlayer d
+    DirLeft -> movePlayer l
+    DirRight -> movePlayer r
+    Standing -> return ()
+checkCurTile (Spy _) = do
+  gs <- get
+  when (not $ gs ^. godMode) $ do
+    redKeyCount .= 0
+    blueKeyCount .= 0
+    yellowKeyCount .= 0
+    hasGreenKey .= False
+    hasFFShoes .= False
+    hasFireBoots .= False
+    hasFlippers .= False
+    hasIceSkates .= False
+
 checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
@@ -610,8 +651,28 @@ moveSand destPos = do
         checkCurTile t
       _ -> error "current tile isn't a sand tile. How did you get here?"
 
+movePlayer :: TilePos -> GameMonad ()
+movePlayer pos = do
+  gs <- get
+  destTile <- tilePosToTile pos
+  let curTile = gs ^. player.standingOn
+      diffX = (destTile ^. x) - (curTile ^. x)
+      diffY = (destTile ^. y) - (curTile ^. y)
+  player.x += diffX
+  player.y += diffY
+  x -= diffX
+  y -= diffY
+  liftIO $ print (diffX, diffY)
+
 once :: GameMonad () -> GameMonad ()
 once action = do
     cur <- liftIO . readIORef $ curLocation
     prev <- liftIO . readIORef $ prevLocation
     when (cur /= prev) action
+
+closeRecessedWall :: GameMonad ()
+closeRecessedWall = do
+  gs <- get
+  case gs ^. player.standingOn of
+    RecessedWall _ -> setTile Current (Wall def)
+    _ -> return ()
