@@ -14,19 +14,23 @@ stepGame i = do
     DirLeft  -> do
       maybeMove TileLeft $ do
         player.x -= tileSize
-        x += tileSize
+        when (gs ^. player.x > (4*tileSize) && gs ^. player.x < ((boardW-4)*tileSize)) $ do
+          x += tileSize
     DirRight -> do
       maybeMove TileRight $ do
         player.x += tileSize
-        x -= tileSize
+        when (gs ^. player.x > (3*tileSize) && gs ^. player.x < ((boardW-5)*tileSize)) $ do
+          x -= tileSize
     DirUp    -> do
       maybeMove TileAbove $ do
         player.y += tileSize
-        y -= tileSize
+        when (gs ^. player.y < ((boardH-5)*tileSize) && gs ^. player.y > (3*tileSize)) $ do
+          y -= tileSize
     DirDown  -> do
       maybeMove TileBelow $ do
         player.y -= tileSize
-        y += tileSize
+        when (gs ^. player.y < ((boardH-4)*tileSize) && gs ^. player.y > (4*tileSize)) $ do
+          y += tileSize
     _ -> return ()
   curTile <- tilePosToTile Current
   curI <- tilePosToIndex Current
