@@ -636,7 +636,7 @@ checkCurTile (Spy _) = do
     hasFireBoots .= False
     hasFlippers .= False
     hasIceSkates .= False
-
+checkCurTile (Dirt _) = setTile Current (Empty def)
 checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
