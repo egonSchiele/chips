@@ -125,5 +125,6 @@ maybeMove tilePos newGs_ = do
                   ButtonBrown _ _ -> newGs
                   ButtonRed _     -> newGs
                   ButtonGreen _   -> newGs
+                  Bomb _          -> newGs
                   _               -> oof
           _ -> newGs

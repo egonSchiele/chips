@@ -636,13 +636,16 @@ checkCurTile _ = return ()
 moveSand destPos = do
     destTile <- tilePosToTile destPos
     curTile <- tilePosToTile Current
+    let isBomb (Bomb _) = True
+        isBomb _        = False
     case curTile of
       Sand t _ -> do
         setTile Current t
         setTile destPos (Sand destTile def)
         player.standingOn .= t
         checkCurTile t
-        checkCurTile destTile
+        when (isButton destTile) $ checkCurTile destTile
+        when (isBomb destTile) $ setTile destPos (Empty def)
       _ -> error "current tile isn't a sand tile. How did you get here?"
 
 movePlayer :: TilePos -> GameMonad ()
