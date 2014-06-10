@@ -49,6 +49,17 @@ stepGame i = do
     else
       tick .= False
   moveEnemies
+  checkSand
+
+-- this function checks if there
+-- are any sand blocks on brown buttons.
+-- If so, the related traps should be open.
+checkSand = do
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    case tile of
+      Sand button@(ButtonBrown _ _) _ -> checkCurTile button
+      _ -> return ()
 
 maybeDisableInput = do
   curTile <- tilePosToTile Current
@@ -70,7 +81,10 @@ maybeDisableInput = do
       IceTopRight    _ -> do
         when (not $ gs ^. hasIceSkates) $
           disableInput .= True
+      -- trap disables/enables input by itself, dont mess with it
+      Trap _ _         -> return ()
       _                -> do
         when (gs ^. disableInput) $ do
           player.direction .= Standing
           disableInput .= False
+          liftIO . putStrLn $ "enabling input"

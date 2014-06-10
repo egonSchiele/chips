@@ -58,7 +58,10 @@ passwords = [
 -- [(level number, [(position of button, position of trap it controls)]]
 trapButtons :: [(LevelNumber, [(Int, Int)])]
 trapButtons = [(5, [(240, 242),
-                    (336, 338)])]
+                    (336, 338)]),
+               (9, [(188, 123)])
+                    
+  ]
 
 -- [dest of teleport, dest if dirUp, dest if dirDown, dest if dirLeft, dest
 -- if dirRight]
@@ -218,6 +221,7 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 75 = ThinWall DirLeft def
           f 76 = ThinWall DirRight def
           f 77 = Dirt def
+          
 
 -- tell all the brown buttons about the traps they are responsible for.
 wireTraps :: Int -> [Tile] -> [Tile]
@@ -366,6 +370,7 @@ moveEnemies = do
                               case tile of
                                 Fire _ -> moveTile i moveI (Just dir)
                                 Water _ -> setTile (Arbitrary i) (Empty def) >> return True
+                                Ice _ -> moveTile i moveI (Just dir)
                                 _ -> return False
         Bee _ _ _ -> moveClockwise i Nothing
         _       -> return False
@@ -569,15 +574,32 @@ checkCurTile (ButtonRed _) = do
           DirDown  -> genAt (i + boardW)
       _       -> return ()
   return ()
-
+checkCurTile (Trap inTrap _) = do
+  gs <- get
+  when (not $ gs ^. godMode) $ do
+    case inTrap of
+      Empty _ -> do
+        setTile Current (Trap (PlayerInTrap def) def)
+        player.direction .= Standing
+        disableInput .= True
+      PlayerInTrap _ -> return ()
+      x -> die
 checkCurTile (ButtonBrown trapPos _) = do
   gs <- get
   i <- tilePosToIndex trapPos
   case (gs ^. tiles) !! i of
     Trap t _ ->
       case t of
-        -- free the rocket
+        -- free the enemy
         Rocket dir _ _ -> setTile (Arbitrary i) (Rocket dir (Trap (Empty def) def) def)
+        Fireball dir _ _ -> setTile (Arbitrary i) (Fireball dir (Trap (Empty def) def) def)
+        Bee dir _ _ -> setTile (Arbitrary i) (Bee dir (Trap (Empty def) def) def)
+        Frog dir _ _ -> setTile (Arbitrary i) (Frog dir (Trap (Empty def) def) def)
+        Tank dir _ _ -> setTile (Arbitrary i) (Tank dir (Trap (Empty def) def) def)
+        Worm dir _ _ -> setTile (Arbitrary i) (Worm dir (Trap (Empty def) def) def)
+        BallPink dir _ _ -> setTile (Arbitrary i) (BallPink dir (Trap (Empty def) def) def)
+        PlayerInTrap _ -> do
+          disableInput .= False
         _ -> return ()
     _ -> return ()
 checkCurTile (Bee _ _ _) = die
@@ -620,6 +642,7 @@ moveSand destPos = do
         setTile destPos (Sand destTile def)
         player.standingOn .= t
         checkCurTile t
+        checkCurTile destTile
       _ -> error "current tile isn't a sand tile. How did you get here?"
 
 movePlayer :: TilePos -> GameMonad ()

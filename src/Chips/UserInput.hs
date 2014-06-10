@@ -119,7 +119,11 @@ maybeMove tilePos newGs_ = do
                         TileBelow -> i + boardW
                 let moveTile = (gs ^. tiles) !! moveIdx
                 case moveTile of
-                  Empty _ -> newGs
-                  Water _ -> newGs
-                  _ -> oof
+                  Empty _         -> newGs
+                  Water _         -> newGs
+                  ButtonBlue _    -> newGs
+                  ButtonBrown _ _ -> newGs
+                  ButtonRed _     -> newGs
+                  ButtonGreen _   -> newGs
+                  _               -> oof
           _ -> newGs

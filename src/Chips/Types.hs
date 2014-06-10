@@ -65,6 +65,7 @@ data Tile = Empty Attributes
           | RecessedWall Attributes
           | ThinWall { _dir :: Direction, _thinWallAttrs :: Attributes }
           | Dirt Attributes
+          | PlayerInTrap Attributes
           deriving (Show, Eq)
 
 deriveMC ''Tile
@@ -152,7 +153,8 @@ instance Renderable Tile where
         DirRight -> image "images/thin_wall_right.png"
         Standing -> error "theres no such thing as a 'standing' thin wall"
     render (Dirt _)               = image "images/dirt.png"
-
+    render (PlayerInTrap _)       = image "images/trap.png"
+    
 data Player = Player {
                 _direction :: Direction,
                 _standingOn :: Tile,
