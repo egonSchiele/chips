@@ -44,6 +44,7 @@ on (EventKey (Char '2') Down _ _) = put $ gameState 2
 on (EventKey (Char '3') Down _ _) = put $ gameState 3
 on (EventKey (Char '4') Down _ _) = put $ gameState 4
 on (EventKey (Char '5') Down _ _) = put $ gameState 5
+on (EventKey (Char '6') Down _ _) = put $ gameState 6
 
 on _ = do
     gs <- get
@@ -73,6 +74,16 @@ maybeMove tilePos newGs = do
         case tile of
           Wall _ -> oof
           ToggleDoor False _ -> oof
+          BlueWall True _ -> do
+            setTile tilePos (Wall def)
+            oof
+          BlueWall False _ -> do
+            setTile tilePos (Empty def)
+            newGs
+          InvisibleWall True _ -> do
+            setTile tilePos (Wall def)
+            oof
+          InvisibleWall False _ -> oof
           LockRed _    -> if _redKeyCount gs > 0 || gs ^. godMode
                             then newGs
                             else oof

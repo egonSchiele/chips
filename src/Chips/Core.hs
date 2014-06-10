@@ -196,7 +196,12 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 62 = GeneratorFireball DirLeft def
           f 63 = GeneratorFireball DirRight def
           f 64 = Trap (Empty def) def
-
+          f 65 = InvisibleWall False def
+          f 66 = InvisibleWall True def
+          f 67 = BlueWall True def
+          f 68 = BlueWall False def
+          f 69 = Gravel def
+          f 70 = FakeChip def
 -- tell all the brown buttons about the traps they are responsible for.
 wireTraps :: Int -> [Tile] -> [Tile]
 wireTraps i tmap =

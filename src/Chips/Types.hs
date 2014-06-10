@@ -57,6 +57,10 @@ data Tile = Empty Attributes
           | Rocket   { _rocketDirection :: Direction, _tileUnderRocket :: Tile, _tdAttrs :: Attributes }
           | Fireball { _fireballDirection :: Direction, _tileUnderFireball :: Tile, _tdAttrs :: Attributes }
           | GeneratorFireball { _generatorDir :: Direction, _gfAttrs :: Attributes }
+          | InvisibleWall { _showOnTouch :: Bool, _hwAttrs :: Attributes }
+          | BlueWall { _real :: Bool, _blueWallAttrs :: Attributes }
+          | Gravel Attributes
+          | FakeChip Attributes
           deriving (Show, Eq)
 
 deriveMC ''Tile
@@ -130,6 +134,10 @@ instance Renderable Tile where
     render (Rocket DirRight _ _)  = image "images/rocket_right.png"
     render (Fireball _ _ _)       = image "images/fireball.png"
     render (GeneratorFireball _ _) = image "images/generator_fireball.png"
+    render (InvisibleWall _ _)    = image "images/empty.png"
+    render (BlueWall _ _)         = image "images/blue_wall.png"
+    render (Gravel _)             = image "images/gravel.png"
+    render (FakeChip _)           = image "images/chip.png"
 
 data Player = Player {
                 _direction :: Direction,
@@ -141,77 +149,26 @@ makeLenses ''Player
 deriveMC ''Player
 
 instance Renderable Player where
-    render p = case p ^. direction of
-                 DirUp    ->
-                   case p ^. standingOn of
-                     Water _          -> image "images/player_swim_up.png"
-                     Ice _            -> image "images/player_ice_up.png"
-                     IceTopLeft _     -> image "images/player_ice_top_left_up.png"
-                     IceTopRight _    -> image "images/player_ice_top_right_up.png"
-                     IceBottomLeft _  -> image "images/player_ice_bottom_left_up.png"
-                     IceBottomRight _ -> image "images/player_ice_bottom_right_up.png"
-                     FFLeft _         -> image "images/player_ff_left_up.png"
-                     FFRight _        -> image "images/player_ff_right_up.png"
-                     FFUp _           -> image "images/player_ff_up_up.png"
-                     FFDown _         -> image "images/player_ff_down_up.png"
-                     Fire _           -> image "images/player_fire_up.png"
-                     _                -> image "images/player_up.png"
-                 DirDown  ->
-                   case p ^. standingOn of
-                     Water _          -> image "images/player_swim_down.png"
-                     Ice _            -> image "images/player_ice_down.png"
-                     IceTopLeft _     -> image "images/player_ice_top_left_down.png"
-                     IceTopRight _    -> image "images/player_ice_top_right_down.png"
-                     IceBottomLeft _  -> image "images/player_ice_bottom_left_down.png"
-                     IceBottomRight _ -> image "images/player_ice_bottom_right_down.png"
-                     FFLeft _         -> image "images/player_ff_left_down.png"
-                     FFRight _        -> image "images/player_ff_right_down.png"
-                     FFUp _           -> image "images/player_ff_up_down.png"
-                     FFDown _         -> image "images/player_ff_down_down.png"
-                     Fire _           -> image "images/player_fire_down.png"
-                     _                -> image "images/player_down.png"
-                 DirLeft  -> 
-                   case p ^. standingOn of
-                     Water _          -> image "images/player_swim_left.png"
-                     Ice _            -> image "images/player_ice_left.png"
-                     IceTopLeft _     -> image "images/player_ice_top_left_left.png"
-                     IceTopRight _    -> image "images/player_ice_top_right_left.png"
-                     IceBottomLeft _  -> image "images/player_ice_bottom_left_left.png"
-                     IceBottomRight _ -> image "images/player_ice_bottom_right_left.png"
-                     FFLeft _         -> image "images/player_ff_left_left.png"
-                     FFRight _        -> image "images/player_ff_right_left.png"
-                     FFUp _           -> image "images/player_ff_up_left.png"
-                     FFDown _         -> image "images/player_ff_down_left.png"
-                     Fire _           -> image "images/player_fire_left.png"
-                     _                -> image "images/player_left.png"
-                 DirRight ->
-                   case p ^. standingOn of
-                     Water _          -> image "images/player_swim_right.png"
-                     Ice _            -> image "images/player_ice_right.png"
-                     IceTopLeft _     -> image "images/player_ice_top_left_right.png"
-                     IceTopRight _    -> image "images/player_ice_top_right_right.png"
-                     IceBottomLeft _  -> image "images/player_ice_bottom_left_right.png"
-                     IceBottomRight _ -> image "images/player_ice_bottom_right_right.png"
-                     FFLeft _         -> image "images/player_ff_left_right.png"
-                     FFRight _        -> image "images/player_ff_right_right.png"
-                     FFUp _           -> image "images/player_ff_up_right.png"
-                     FFDown _         -> image "images/player_ff_down_right.png"
-                     Fire _           -> image "images/player_fire_right.png"
-                     _                -> image "images/player_right.png"
-                 Standing ->
-                   case p ^. standingOn of
-                     Water _          -> image "images/player_swim_down.png"
-                     Ice _            -> image "images/player_ice_down.png"
-                     IceTopLeft _     -> image "images/player_ice_top_left_down.png"
-                     IceTopRight _    -> image "images/player_ice_top_right_down.png"
-                     IceBottomLeft _  -> image "images/player_ice_bottom_left_down.png"
-                     IceBottomRight _ -> image "images/player_ice_bottom_right_down.png"
-                     FFLeft _         -> image "images/player_ff_left_down.png"
-                     FFRight _        -> image "images/player_ff_right_down.png"
-                     FFUp _           -> image "images/player_ff_up_down.png"
-                     FFDown _         -> image "images/player_ff_down_down.png"
-                     Fire _           -> image "images/player_fire_down.png"
-                     _                -> image "images/player_down.png"
+    render p = case p ^. standingOn of
+                 Water _          -> image $ "images/player_swim_" ++ dir ++ ".png"
+                 Ice _            -> image $ "images/player_ice_" ++ dir ++ ".png"
+                 IceTopLeft _     -> image $ "images/player_ice_top_left_" ++ dir ++ ".png"
+                 IceTopRight _    -> image $ "images/player_ice_top_right_" ++ dir ++ ".png"
+                 IceBottomLeft _  -> image $ "images/player_ice_bottom_left_" ++ dir ++ ".png"
+                 IceBottomRight _ -> image $ "images/player_ice_bottom_right_" ++ dir ++ ".png"
+                 FFLeft _         -> image $ "images/player_ff_left_" ++ dir ++ ".png"
+                 FFRight _        -> image $ "images/player_ff_right_" ++ dir ++ ".png"
+                 FFUp _           -> image $ "images/player_ff_up_" ++ dir ++ ".png"
+                 FFDown _         -> image $ "images/player_ff_down_" ++ dir ++ ".png"
+                 Fire _           -> image $ "images/player_fire_" ++ dir ++ ".png"
+                 Gravel _         -> image $ "images/player_gravel_" ++ dir ++ ".png"
+                 _                -> image $ "images/player_" ++ dir ++ ".png"
+          where dir = case p ^. direction of
+                        DirUp -> "up"
+                        DirDown -> "down"
+                        DirLeft -> "left"
+                        DirRight -> "right"
+                        Standing -> "down"
 
 data GameState = GameState {
                     _tiles :: [Tile],
