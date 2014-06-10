@@ -45,6 +45,7 @@ on (EventKey (Char '3') Down _ _) = put $ gameState 3
 on (EventKey (Char '4') Down _ _) = put $ gameState 4
 on (EventKey (Char '5') Down _ _) = put $ gameState 5
 on (EventKey (Char '6') Down _ _) = put $ gameState 6
+on (EventKey (Char '7') Down _ _) = put $ gameState 7
 
 on _ = do
     gs <- get
