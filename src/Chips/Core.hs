@@ -256,6 +256,7 @@ gameState i = x .~ startX $ y .~ startY $ gs
               0 0 0 False
               False False False False False
               False
+              False
               def
         startX = (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
         startY = (4 - snd chipStart) * tileSize
@@ -339,30 +340,36 @@ maybeMoveTile i dir func = do
     DirUp    -> moveIfEmpty (i - boardW)
     DirDown  -> moveIfEmpty (i + boardW)
 
+onTick :: GameMonad () -> GameMonad ()
+onTick action = do
+  gs <- get
+  when (gs ^. tick) action
+
 moveEnemies :: GameMonad ()
 moveEnemies = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
-    case tile of
-      Tank dir _ _   -> maybeMoveTile i dir Nothing
-      Rocket dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
-                          case tile of
-                            Bomb _ -> do
-                              moveTile i moveI Nothing
-                              setTile (Arbitrary moveI) (Empty def)
-                              return True
-                            _ -> return False
-      BallPink dir tileUnder _ -> maybeMoveTile i dir $ Just $ \_ -> do
-                                    setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
-                                    return True
-      Fireball dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
+  onTick $ do
+    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+      case tile of
+        Tank dir _ _   -> maybeMoveTile i dir Nothing
+        Rocket dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
                             case tile of
-                              Fire _ -> moveTile i moveI (Just dir)
-                              Water _ -> setTile (Arbitrary i) (Empty def) >> return True
+                              Bomb _ -> do
+                                moveTile i moveI Nothing
+                                setTile (Arbitrary moveI) (Empty def)
+                                return True
                               _ -> return False
-      Bee _ _ _ -> moveClockwise i Nothing
-      _       -> return False
-  return ()
+        BallPink dir tileUnder _ -> maybeMoveTile i dir $ Just $ \_ -> do
+                                      setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
+                                      return True
+        Fireball dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
+                              case tile of
+                                Fire _ -> moveTile i moveI (Just dir)
+                                Water _ -> setTile (Arbitrary i) (Empty def) >> return True
+                                _ -> return False
+        Bee _ _ _ -> moveClockwise i Nothing
+        _       -> return False
+    return ()
 
 -- Move this bee counter-clockwise around an object.
 moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
@@ -461,95 +468,59 @@ checkCurTile (Water _) = do
 checkCurTile (Fire _) = do
   gs <- get
   when (not . _hasFireBoots $ gs) die
-checkCurTile (Ice _) = do
-  gs <- get
-  when (not $ _hasIceSkates gs || _godMode gs) $ do
-    case gs ^. player.direction of
-      DirLeft  -> do
-          player.x -= tileSize
-          x += tileSize
-      DirRight -> do
-          player.x += tileSize
-          x -= tileSize
-      DirUp    -> do
-          player.y += tileSize
-          y -= tileSize
-      DirDown  -> do
-          player.y -= tileSize
-          y += tileSize
-      _ -> return ()
+checkCurTile (Ice _) = return ()
 checkCurTile (IceBottomLeft _) = do
   gs <- get
   when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
-      DirLeft -> do
-        player.direction .= DirUp
-        player.y += tileSize
-        y -= tileSize
-      DirDown -> do
-        player.direction .= DirRight
-        player.x += tileSize
-        x -= tileSize
+      DirLeft -> player.direction .= DirUp
+      DirDown -> player.direction .= DirRight
       _ -> return ()
 checkCurTile (IceTopLeft _) = do
   gs <- get
   when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
-      DirLeft -> do
-        player.direction .= DirDown
-        player.y -= tileSize
-        y += tileSize
-      DirUp -> do
-        player.direction .= DirRight
-        player.x += tileSize
-        x -= tileSize
+      DirLeft -> player.direction .= DirDown
+      DirUp   -> player.direction .= DirRight
       _ -> return ()
 checkCurTile (IceTopRight _) = do
   gs <- get
   when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
-      DirRight -> do
-        player.direction .= DirDown
-        player.y -= tileSize
-        y += tileSize
-      DirUp -> do
-        player.direction .= DirLeft
-        player.x -= tileSize
-        x += tileSize
+      DirRight -> player.direction .= DirDown
+      DirUp    -> player.direction .= DirLeft
       _ -> return ()
 checkCurTile (IceBottomRight _) = do
   gs <- get
   when (not $ _hasIceSkates gs || _godMode gs) $ do
     case gs ^. player.direction of
-      DirRight -> do
-        player.direction .= DirUp
-        player.y += tileSize
-        y -= tileSize
-      DirDown -> do
-        player.direction .= DirLeft
-        player.x -= tileSize
-        x += tileSize
+      DirRight -> player.direction .= DirUp
+      DirDown  -> player.direction .= DirLeft
       _ -> return ()
 checkCurTile (FFLeft _) = do
   gs <- get
-  when (not $ _hasFFShoes gs || _godMode gs) $ do
-    player.x -= tileSize
-    x += tileSize
+  onTick $ do
+    when (not $ _hasFFShoes gs || _godMode gs) $ do
+      player.x -= tileSize
+      x += tileSize
 checkCurTile (FFRight _) = do
   gs <- get
-  when (not $ _hasFFShoes gs || _godMode gs) $ do
-    player.x += tileSize
-    x -= tileSize
+  onTick $ do
+    when (not $ _hasFFShoes gs || _godMode gs) $ do
+      player.x += tileSize
+      x -= tileSize
 checkCurTile (FFUp _) = do
   gs <- get
-  when (not $ _hasFFShoes gs || _godMode gs) $ do
-    player.y += tileSize
-    y -= tileSize
+  onTick $ do
+    when (not $ _hasFFShoes gs || _godMode gs) $ do
+      player.y += tileSize
+      y -= tileSize
 checkCurTile (FFDown _) = do
   gs <- get
-  when (not $ _hasFFShoes gs || _godMode gs) $ do
-    player.y -= tileSize
-    y += tileSize
+  onTick $ do
+    when (not $ _hasFFShoes gs || _godMode gs) $ do
+      player.y -= tileSize
+      y += tileSize
 checkCurTile (FFShoes _) = do
   hasFFShoes .= True
   setTile Current (Empty def)

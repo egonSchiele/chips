@@ -39,6 +39,7 @@ on (EventKey (SpecialKey KeyDown) Down _ _) = do
     player.direction .= DirDown
 
 on (EventKey (SpecialKey KeySpace) Down _ _) = godMode .= True
+on (EventKey (SpecialKey KeyDelete) Down _ _) = godMode .= False
 on (EventKey (Char '1') Down _ _) = put $ gameState 1
 on (EventKey (Char '2') Down _ _) = put $ gameState 2
 on (EventKey (Char '3') Down _ _) = put $ gameState 3

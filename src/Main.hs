@@ -42,9 +42,13 @@ stepGame i = do
 
   cur <- liftIO getCurrentTime
   last <- liftIO $ readIORef lastTick
-  when (diffUTCTime last cur < moveSpeed) $ do
-    liftIO $ lastTick $= cur
-    moveEnemies
+  if (diffUTCTime last cur < moveSpeed)
+    then do
+      liftIO $ lastTick $= cur
+      tick .= True
+    else
+      tick .= False
+  moveEnemies
 
 maybeDisableInput = do
   curTile <- tilePosToTile Current
@@ -65,18 +69,6 @@ maybeDisableInput = do
           disableInput .= True
       IceTopRight    _ -> do
         when (not $ gs ^. hasIceSkates) $
-          disableInput .= True
-      FFLeft         _ -> do
-        when (not $ gs ^. hasFFShoes) $
-          disableInput .= True
-      FFRight        _ -> do
-        when (not $ gs ^. hasFFShoes) $
-          disableInput .= True
-      FFUp           _ -> do
-        when (not $ gs ^. hasFFShoes) $
-          disableInput .= True
-      FFDown         _ -> do
-        when (not $ gs ^. hasFFShoes) $
           disableInput .= True
       _                -> do
         when (gs ^. disableInput) $ do
