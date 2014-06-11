@@ -40,10 +40,11 @@ on (EventKey (SpecialKey KeyDown) Down _ _) = do
 
 on (EventKey (SpecialKey KeySpace) Down _ _) = godMode .= True
 on (EventKey (SpecialKey KeyDelete) Down _ _) = godMode .= False
-on (EventKey (Char '1') Down _ _) = put $ gameState 1
-on (EventKey (Char '2') Down _ _) = put $ gameState 2
-on (EventKey (Char '3') Down _ _) = put $ gameState 3
-on (EventKey (Char '4') Down _ _) = put $ gameState 4
+on (EventKey (Char '0') Down _ _) = put $ gameState 10
+on (EventKey (Char '1') Down _ _) = put $ gameState 11
+on (EventKey (Char '2') Down _ _) = put $ gameState 12
+on (EventKey (Char '3') Down _ _) = put $ gameState 13
+on (EventKey (Char '4') Down _ _) = put $ gameState 14
 on (EventKey (Char '5') Down _ _) = put $ gameState 5
 on (EventKey (Char '6') Down _ _) = put $ gameState 6
 on (EventKey (Char '7') Down _ _) = put $ gameState 7
