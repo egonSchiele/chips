@@ -209,7 +209,10 @@ deriveMC ''GameState
 
 instance Renderable GameState where
     -- render (LevelComplete _ _) = translate 0 200 $ scale 0.1 0.1 $ text "Level Complete! Press space to go onward!"
-    render gs = displayAll (_tiles gs) <> display (_player gs)
+    render gs = displayAll (_tiles gs) <> display (_player gs) <> godMode_
+      where godMode_ = case gs ^. godMode of
+                         True -> translate (0 - gs ^. x) (0 - gs ^. y) $ scale 0.1 0.1 $ color red $ text "god mode"
+                         False -> blank
 
 type GameMonad a = StateT GameState IO a
 
