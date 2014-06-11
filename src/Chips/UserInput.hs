@@ -5,10 +5,6 @@ import Chips.Common
 import Chips.Core
 import Chips.Globals
 
--- if a user is holding a key down, move
--- this fast (currently every 1/4 of a second)
-moveSpeed = -0.15
-
 -- used in some logic that lets a user hold a key down.
 resetMoveTime :: IO ()
 resetMoveTime = modifyIORef lastPress (addUTCTime moveSpeed)
