@@ -478,7 +478,32 @@ checkCurTile (Water _) = do
 checkCurTile (Fire _) = do
   gs <- get
   when (not . _hasFireBoots $ gs) die
-checkCurTile (Ice _) = return ()
+checkCurTile (Ice _) = do
+  gs <- get
+  let bounceCheck pos dir = do
+        tile <- tilePosToTile pos
+        -- TODO:
+        -- major code duplication between this and maybeMove function,
+        -- and this function doesn't even take care of all the cases
+        -- that that function does!
+        case tile of
+          Wall _ -> player.direction .= dir
+          BlueWall True _ -> do
+            setTile pos (Wall def)
+            player.direction .= dir
+          BlueWall False _ -> do
+            setTile pos (Empty def)
+          InvisibleWall True _ -> do
+            setTile pos (Wall def)
+            player.direction .= dir
+          InvisibleWall False _ -> player.direction .= dir
+          _ -> return ()
+  case gs ^. player.direction of
+    DirUp -> bounceCheck TileAbove DirDown
+    DirDown -> bounceCheck TileBelow DirUp
+    DirLeft -> bounceCheck TileLeft DirRight
+    DirRight -> bounceCheck TileRight DirLeft
+
 checkCurTile (IceBottomLeft _) = do
   gs <- get
   when (not $ _hasIceSkates gs || _godMode gs) $ do
