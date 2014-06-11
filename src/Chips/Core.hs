@@ -266,9 +266,9 @@ gameState i = x .~ startX $ y .~ startY $ gs
                    then (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
                    else 0
 
-        startY = if snd chipStart >= 4
+        startY = if snd chipStart <= (boardH-4)
                    then (4 - snd chipStart) * tileSize
-                   else 0
+                   else (9-boardH) * tileSize
         -- | (x, y) of chip's start position (marked as a 0 on the tile map)
         chipStart :: (Float, Float)
         chipStart =
