@@ -507,6 +507,7 @@ checkCurTile (Ice _) = do
     DirDown -> bounceCheck TileBelow DirUp
     DirLeft -> bounceCheck TileLeft DirRight
     DirRight -> bounceCheck TileRight DirLeft
+    Standing -> return ()
 
 checkCurTile (IceBottomLeft _) = do
   gs <- get
