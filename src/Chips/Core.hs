@@ -221,6 +221,10 @@ renderedTiles tmap = renderTileMap tmap f (tileSize, tileSize)
           f 75 = ThinWall DirLeft def
           f 76 = ThinWall DirRight def
           f 77 = Dirt def
+          f 78 = Sand (FFShoes def) def
+          f 79 = Sand (Flippers def) def
+          f 80 = Sand (FireBoots def) def
+          f 81 = Sand (IceSkates def) def
           
 
 -- tell all the brown buttons about the traps they are responsible for.
