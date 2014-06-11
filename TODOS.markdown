@@ -1,0 +1,5 @@
+- make the frog enemy work
+- show level title and password on start
+- alternate music (chips1/chips2) on different levels
+- allow users to enter password to jump to a level
+- implement a status bar showing time remaining, chips remaining, etc.
