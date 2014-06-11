@@ -43,6 +43,9 @@ on (EventKey (Char 'n') Down _ _) = do
 on (EventKey (Char 'p') Down _ _) = do
   gs <- get
   put $ gameState (gs ^. level - 1)
+on (EventKey (Char 'r') Down _ _) = do
+  gs <- get
+  put $ gameState (gs ^. level)
   
 on _ = do
     gs <- get
