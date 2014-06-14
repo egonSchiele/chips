@@ -222,11 +222,12 @@ moveClockwise i func = do
         goRight = maybeMoveTile i DirRight func
         goUp    = maybeMoveTile i DirUp func
         goDown  = maybeMoveTile i DirDown func
-    case enemyDirection enemy of
-      DirUp    -> goLeft  <||> goUp    <||> goRight <||> goDown
-      DirLeft  -> goDown  <||> goLeft  <||> goUp    <||> goRight
-      DirDown  -> goRight <||> goDown  <||> goLeft  <||> goUp
-      DirRight -> goUp    <||> goRight <||> goDown  <||> goLeft
+    case getDirection enemy of
+      Just DirUp    -> goLeft  <||> goUp    <||> goRight <||> goDown
+      Just DirLeft  -> goDown  <||> goLeft  <||> goUp    <||> goRight
+      Just DirDown  -> goRight <||> goDown  <||> goLeft  <||> goUp
+      Just DirRight -> goUp    <||> goRight <||> goDown  <||> goLeft
+      Nothing       -> error $ "don't know how to get direction for enemy: " ++ (show enemy)
 
 -- move clockwise, but not around an object...just keep going as far as
 -- you can, and when you hit a wall, turn.
@@ -238,21 +239,12 @@ moveClockwiseLong i func = do
         goRight = maybeMoveTile i DirRight func
         goUp    = maybeMoveTile i DirUp func
         goDown  = maybeMoveTile i DirDown func
-    case enemyDirection enemy of
-      DirUp    -> goUp    <||> goLeft  <||> goRight <||> goDown
-      DirLeft  -> goLeft  <||> goDown  <||> goUp    <||> goRight
-      DirDown  -> goDown  <||> goRight  <||> goLeft  <||> goUp
-      DirRight -> goRight <||> goUp    <||> goDown  <||> goLeft
-
-enemyDirection :: Tile -> Direction
-enemyDirection (Bee dir _ _) = dir
-enemyDirection (Frog dir _ _) = dir
-enemyDirection (Tank dir _ _) = dir
-enemyDirection (Worm dir _ _) = dir
-enemyDirection (BallPink dir _ _) = dir
-enemyDirection (Rocket dir _ _) = dir
-enemyDirection (Fireball dir _ _) = dir
-enemyDirection x = error $ "don't know how to find direction for enemy: " ++ (show x)
+    case getDirection enemy of
+      Just DirUp    -> goUp    <||> goLeft  <||> goRight <||> goDown
+      Just DirLeft  -> goLeft  <||> goDown  <||> goUp    <||> goRight
+      Just DirDown  -> goDown  <||> goRight  <||> goLeft  <||> goUp
+      Just DirRight -> goRight <||> goUp    <||> goDown  <||> goLeft
+      Nothing       -> error $ "don't know how to get direction for enemy: " ++ (show enemy)
 
 (<||>) :: GameMonad Bool -> GameMonad Bool -> GameMonad Bool
 a <||> b = do
