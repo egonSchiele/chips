@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
 module Chips.Types where
 import Chips.Common
 import Control.Lens
@@ -67,6 +67,66 @@ data Tile = Empty Attributes
           | Dirt Attributes
           | PlayerInTrap Attributes
           deriving (Show, Eq)
+
+getTileUnder :: Tile -> Tile
+getTileUnder tile = 
+  case tile of
+    Tank _ t _ -> t
+    Bee _ t _ -> t
+    Frog _ t _ -> t
+    Sand t _ -> t
+    Worm _ t _ -> t
+    BallPink _ t _ -> t
+    Rocket _ t _ -> t
+    Fireball _ t _ -> t
+    Trap t _ -> t
+    _ -> Empty def
+
+setTileUnder :: Tile -> Tile -> Tile
+setTileUnder tile under = 
+  case tile of
+    Tank d t a -> Tank d under a
+    Bee d t a -> Bee d under a
+    Frog d t a -> Frog d under a
+    Sand t a -> Sand under a
+    Worm d t a -> Worm d under a
+    BallPink d t a -> BallPink d under a
+    Rocket d t a -> Rocket d under a
+    Fireball d t a -> Fireball d under a
+    Trap _ a -> Trap under a
+    x -> x
+
+tileUnder = lens getTileUnder setTileUnder
+
+getDirection :: Tile -> Maybe Direction
+getDirection tile = 
+  case tile of
+    Tank d _ _ -> Just d
+    Bee d _ _ -> Just d
+    Frog d _ _ -> Just d
+    Worm d _ _ -> Just d
+    BallPink d _ _ -> Just d
+    Rocket d _ _ -> Just d
+    Fireball d _ _ -> Just d
+    GeneratorFireball d _ -> Just d
+    ThinWall d _ -> Just d
+    _ -> Nothing
+
+setDirection :: Tile -> Direction -> Tile
+setDirection tile d =
+  case tile of
+    Tank _ t a -> Tank d t a
+    Bee _ t a -> Bee d t a
+    Frog _ t a -> Frog d t a
+    Worm _ t a -> Worm d t a
+    BallPink _ t a -> BallPink d t a
+    Rocket _ t a -> Rocket d t a
+    Fireball _ t a -> Fireball d t a
+    GeneratorFireball _ a -> GeneratorFireball d a
+    ThinWall _ a -> ThinWall d a
+    x -> x
+
+dir = lens getDirection setDirection
 
 deriveMC ''Tile
 
@@ -215,5 +275,3 @@ instance Renderable GameState where
                          False -> blank
 
 type GameMonad a = StateT GameState IO a
-
-type LevelNumber = Int

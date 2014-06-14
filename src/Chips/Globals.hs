@@ -79,3 +79,25 @@ passwords = [
 
 boardW = 32 -- length . head $ tileMap
 boardH = 32 -- length tileMap
+
+type LevelNumber = Int
+
+-- each brown button is associated with a specific trap. There's no way to
+-- encode this information in the tilemap, so it lives in this array
+-- instead.
+-- [(level number, [(position of button, position of trap it controls)]]
+trapButtons :: [(LevelNumber, [(Int, Int)])]
+trapButtons = [(5, [(240, 242),
+                    (336, 338)]),
+               (9, [(188, 123)])
+                    
+  ]
+
+-- [dest of teleport, dest if dirUp, dest if dirDown, dest if dirLeft, dest
+-- if dirRight]
+teleportDestinations :: [(LevelNumber, [(Int, Int, Int, Int, Int)])]
+teleportDestinations =
+    [(7, [(463,0,529+1,0,529+1),
+          (465,0,529+1,463-1,0),
+          (527,465-boardW,0,0,529+1),
+          (529,465-boardW,0,527-1,0)])]

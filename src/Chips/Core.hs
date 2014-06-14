@@ -11,26 +11,6 @@ chipsLeft gs = length $ filter isChip (_tiles gs)
   where isChip (Chip _) = True
         isChip _        = False
 
--- each brown button is associated with a specific trap. There's no way to
--- encode this information in the tilemap, so it lives in this array
--- instead.
--- [(level number, [(position of button, position of trap it controls)]]
-trapButtons :: [(LevelNumber, [(Int, Int)])]
-trapButtons = [(5, [(240, 242),
-                    (336, 338)]),
-               (9, [(188, 123)])
-                    
-  ]
-
--- [dest of teleport, dest if dirUp, dest if dirDown, dest if dirLeft, dest
--- if dirRight]
-teleportDestinations :: [(LevelNumber, [(Int, Int, Int, Int, Int)])]
-teleportDestinations =
-    [(7, [(463,0,529+1,0,529+1),
-          (465,0,529+1,463-1,0),
-          (527,465-boardW,0,0,529+1),
-          (529,465-boardW,0,527-1,0)])]
-
 oof :: GameMonad ()
 oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 
@@ -88,11 +68,11 @@ tilePosToTile pos = do
 
 setTile :: TilePos -> Tile -> GameMonad ()
 setTile pos tile = do
-    gs <- get
     i <- tilePosToIndex pos
-    -- TODO refactor this -v
-    let attrs_ = ((gs ^. tiles) !! i) ^. attrs
-    tiles.(ix i) .= (attrs .~ attrs_ $ tile)
+    attrs_ <- use (tiles.(idx i).attrs)
+    tiles.(ix i) .= tile
+    tiles.(ix i).attrs .= attrs_
+
 
 -- tell all the brown buttons about the traps they are responsible for.
 wireTraps :: Int -> [Tile] -> [Tile]
@@ -165,32 +145,13 @@ moveTile from to newDir = do
   gs <- get
   let fromTile = (gs ^. tiles) !! from
       toTile = (gs ^. tiles) !! to
-      tileUnder = 
-        case fromTile of
-          Tank _ t _ -> t
-          Bee _ t _ -> t
-          Frog _ t _ -> t
-          Sand t _ -> t
-          Worm _ t _ -> t
-          BallPink _ t _ -> t
-          Rocket _ t _ -> t
-          Fireball _ t _ -> t
-          _ -> Empty def
-      newToTile =
-        case fromTile of
-          Tank dir _ _ -> Tank (fromMaybe dir newDir) toTile def
-          Bee dir _ _ -> Bee (fromMaybe dir newDir) toTile def
-          Frog dir _ _ -> Frog (fromMaybe dir newDir) toTile def
-          Sand _ _ -> Sand toTile def
-          Worm dir _ _ -> Worm (fromMaybe dir newDir) toTile def
-          BallPink dir _ _ -> BallPink (fromMaybe dir newDir) toTile def
-          Rocket dir _ _ -> Rocket (fromMaybe dir newDir) toTile def
-          Fireball dir _ _ -> Fireball (fromMaybe dir newDir) toTile def
-          _ -> fromTile
-  setTile (Arbitrary from) tileUnder
-  case toTile of
-    Trap _ _ -> setTile (Arbitrary to) (Trap fromTile def)
-    _ -> setTile (Arbitrary to) newToTile
+      newToTile = case toTile of
+                    Trap _ _ -> tileUnder .~ fromTile $ toTile
+                    _ -> case newDir of
+                           Just dir_ -> dir .~ dir_ $ tileUnder .~ toTile $ fromTile
+                           Nothing -> tileUnder .~ toTile $ fromTile
+  setTile (Arbitrary from) (fromTile ^. tileUnder)
+  setTile (Arbitrary to) newToTile
   when (isButton toTile) $ checkCurTile toTile
   return True
 
