@@ -68,6 +68,7 @@ a <||> b = do
     else b
 
 oneOf :: [GameMonad Bool] -> GameMonad Bool
+oneOf [] = return False
 oneOf (x:[]) = x
 oneOf (x:xs) = x <||> (oneOf xs)
 
