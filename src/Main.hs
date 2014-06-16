@@ -67,30 +67,27 @@ checkSand = do
 
 maybeDisableInput = do
   curTile <- use . tileAt $ Current
-  gs <- get
-  if (not $ gs ^. godMode)
-    then do
-      case curTile of
-        Ice            _ -> do
-          when (not $ gs ^. hasIceSkates) $
-            disableInput .= True
-        IceBottomLeft  _ -> do
-          when (not $ gs ^. hasIceSkates) $
-            disableInput .= True
-        IceBottomRight _ -> do
-          when (not $ gs ^. hasIceSkates) $
-            disableInput .= True
-        IceTopLeft     _ -> do
-          when (not $ gs ^. hasIceSkates) $
-            disableInput .= True
-        IceTopRight    _ -> do
-          when (not $ gs ^. hasIceSkates) $
-            disableInput .= True
-        -- trap disables/enables input by itself, dont mess with it
-        Trap _ _         -> return ()
-        _                -> do
-          when (gs ^. disableInput) $ do
-            player.direction .= Standing
-            disableInput .= False
-            liftIO . putStrLn $ "enabling input"
-    else disableInput .= False
+  guardGodMode $ do
+    case curTile of
+      Ice            _ -> do
+        whenM not hasIceSkates $ do
+          disableInput .= True
+      IceBottomLeft  _ -> do
+        whenM not hasIceSkates $ do
+          disableInput .= True
+      IceBottomRight _ -> do
+        whenM not hasIceSkates $ do
+          disableInput .= True
+      IceTopLeft     _ -> do
+        whenM not hasIceSkates $ do
+          disableInput .= True
+      IceTopRight    _ -> do
+        whenM not hasIceSkates $ do
+          disableInput .= True
+      -- trap disables/enables input by itself, dont mess with it
+      Trap _ _         -> return ()
+      _                -> do
+        whenM id disableInput $ do
+          player.direction .= Standing
+          disableInput .= False
+          liftIO . putStrLn $ "enabling input"

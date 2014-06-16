@@ -11,32 +11,29 @@ resetMoveTime = modifyIORef lastPress (addUTCTime moveSpeed)
 
 on :: Event -> GameMonad ()
 on (EventKey (SpecialKey KeyLeft) Down _ _) = do
-  gs <- get
-  when (not $ gs ^. disableInput) $ do
+  whenM not disableInput $ do
     liftIO resetMoveTime
     player.direction .= DirLeft
 
 on (EventKey (SpecialKey KeyRight) Down _ _) = do
-  gs <- get
-  when (not $ gs ^. disableInput) $ do
+  whenM not disableInput $ do
     liftIO resetMoveTime
     player.direction .= DirRight
 
 on (EventKey (SpecialKey KeyUp) Down _ _) = do
-  gs <- get
-  when (not $ gs ^. disableInput) $ do
+  whenM not disableInput $ do
     liftIO resetMoveTime
     player.direction .= DirUp
 
 on (EventKey (SpecialKey KeyDown) Down _ _) = do
-  gs <- get
-  when (not $ gs ^. disableInput) $ do
+  whenM not disableInput $ do
     liftIO resetMoveTime
     player.direction .= DirDown
 
 on (EventKey (SpecialKey KeySpace) Down _ _) = do
   gs <- get
   godMode .= (not $ gs ^. godMode)
+  disableInput .= False
 on (EventKey (Char 'n') Down _ _) = do
   gs <- get
   put $ gameState (gs ^. level + 1)
@@ -48,9 +45,8 @@ on (EventKey (Char 'r') Down _ _) = do
   put $ gameState (gs ^. level)
   
 on _ = do
-    gs <- get
-    when (not $ gs ^. disableInput) $ do
-      player.direction .= Standing
+  whenM not disableInput $ do
+    player.direction .= Standing
 
 maybeMove :: TilePos -> GameMonad () -> GameMonad ()
 maybeMove tilePos newGs_ = do

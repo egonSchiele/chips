@@ -20,6 +20,10 @@ chipsLeft gs = length $ filter isChip (_tiles gs)
 oof :: GameMonad ()
 oof = liftIO $ playSound (soundDir ++ "oof.wav") False
 
+guardGodMode action = do
+  gm <- use godMode
+  when (not gm) action
+
 win :: GameMonad ()
 win = liftIO $ playSound (soundDir ++ "win.wav") False
 
@@ -29,7 +33,7 @@ bummer = liftIO $ playSound (soundDir ++ "bummer.wav") False
 die :: GameMonad ()
 die = do
   gs <- get
-  when (not $ gs ^. godMode) $ do
+  guardGodMode $ do
     bummer >> put (gameState (gs ^. level))
 
 -- given a number, returns the 2-d array that represents the tilemap for
@@ -199,9 +203,7 @@ maybeMoveTile i dir func = do
     DirDown  -> moveIfEmpty (i + boardW)
 
 onTick :: GameMonad () -> GameMonad ()
-onTick action = do
-  gs <- get
-  when (gs ^. tick) action
+onTick action = whenM id tick action
 
 moveEnemies :: GameMonad ()
 moveEnemies = do
@@ -314,11 +316,9 @@ checkCurTile (GateFinal _) = do
   gs <- get
   put $ gameState (gs ^. level + 1)
 checkCurTile (Water _) = do
-  gs <- get
-  when (not . _hasFlippers $ gs) die
+  guardGodMode $ whenM not hasFlippers die
 checkCurTile (Fire _) = do
-  gs <- get
-  when (not . _hasFireBoots $ gs) die
+  guardGodMode $ whenM not hasFireBoots die
 checkCurTile (Ice _) = do
   gs <- get
   let bounceCheck pos dir = do
@@ -348,56 +348,60 @@ checkCurTile (Ice _) = do
 
 checkCurTile (IceBottomLeft _) = do
   gs <- get
-  when (not $ _hasIceSkates gs || _godMode gs) $ do
-    case gs ^. player.direction of
-      DirLeft -> player.direction .= DirUp
-      DirDown -> player.direction .= DirRight
-      _ -> return ()
+  guardGodMode $ do
+    whenM not hasIceSkates $ do
+      case gs ^. player.direction of
+        DirLeft -> player.direction .= DirUp
+        DirDown -> player.direction .= DirRight
+        _ -> return ()
 checkCurTile (IceTopLeft _) = do
   gs <- get
-  when (not $ _hasIceSkates gs || _godMode gs) $ do
-    case gs ^. player.direction of
-      DirLeft -> player.direction .= DirDown
-      DirUp   -> player.direction .= DirRight
-      _ -> return ()
+  guardGodMode $ do
+    whenM not hasIceSkates $ do
+      case gs ^. player.direction of
+        DirLeft -> player.direction .= DirDown
+        DirUp   -> player.direction .= DirRight
+        _ -> return ()
 checkCurTile (IceTopRight _) = do
   gs <- get
-  when (not $ _hasIceSkates gs || _godMode gs) $ do
-    case gs ^. player.direction of
-      DirRight -> player.direction .= DirDown
-      DirUp    -> player.direction .= DirLeft
-      _ -> return ()
+  guardGodMode $ do
+    whenM not hasIceSkates $ do
+      case gs ^. player.direction of
+        DirRight -> player.direction .= DirDown
+        DirUp    -> player.direction .= DirLeft
+        _ -> return ()
 checkCurTile (IceBottomRight _) = do
   gs <- get
-  when (not $ _hasIceSkates gs || _godMode gs) $ do
-    case gs ^. player.direction of
-      DirRight -> player.direction .= DirUp
-      DirDown  -> player.direction .= DirLeft
-      _ -> return ()
+  guardGodMode $ do
+    whenM not hasIceSkates $ do
+      case gs ^. player.direction of
+        DirRight -> player.direction .= DirUp
+        DirDown  -> player.direction .= DirLeft
+        _ -> return ()
 checkCurTile (FFLeft _) = do
-  gs <- get
   onTick $ do
-    when (not $ _hasFFShoes gs || _godMode gs) $ do
-      player.x -= tileSize
-      x += tileSize
+    guardGodMode $ do
+      whenM not hasFFShoes $ do
+        player.x -= tileSize
+        x += tileSize
 checkCurTile (FFRight _) = do
-  gs <- get
   onTick $ do
-    when (not $ _hasFFShoes gs || _godMode gs) $ do
-      player.x += tileSize
-      x -= tileSize
+    guardGodMode $ do
+      whenM not hasFFShoes $ do
+        player.x += tileSize
+        x -= tileSize
 checkCurTile (FFUp _) = do
-  gs <- get
   onTick $ do
-    when (not $ _hasFFShoes gs || _godMode gs) $ do
-      player.y += tileSize
-      y -= tileSize
+    guardGodMode $ do
+      whenM not hasFFShoes $ do
+        player.y += tileSize
+        y -= tileSize
 checkCurTile (FFDown _) = do
-  gs <- get
   onTick $ do
-    when (not $ _hasFFShoes gs || _godMode gs) $ do
-      player.y -= tileSize
-      y += tileSize
+    guardGodMode $ do
+      whenM not hasFFShoes $ do
+        player.y -= tileSize
+        y += tileSize
 checkCurTile (FFShoes _) = do
   hasFFShoes .= True
   tileAt Current .= Empty def
@@ -448,7 +452,7 @@ checkCurTile (ButtonRed _) = do
   return ()
 checkCurTile (Trap inTrap _) = do
   gs <- get
-  when (not $ gs ^. godMode) $ do
+  guardGodMode $ do
     case inTrap of
       Empty _ -> do
         tileAt Current .= Trap (PlayerInTrap def) def
@@ -492,7 +496,7 @@ checkCurTile (Teleporter u d l r _) = do
     Standing -> return ()
 checkCurTile (Spy _) = do
   gs <- get
-  when (not $ gs ^. godMode) $ do
+  guardGodMode $ do
     redKeyCount .= 0
     blueKeyCount .= 0
     yellowKeyCount .= 0

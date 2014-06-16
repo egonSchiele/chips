@@ -22,7 +22,7 @@ setValue list index func = (take (index) list) ++ [func (list !! index)] ++ (dro
 
 idx i = to (\x -> x !! i)
 
-when_ func val action = do
+whenM func val action = do
   val_ <- use val
   when (func val_) action
 
