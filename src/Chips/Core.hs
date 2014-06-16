@@ -7,6 +7,12 @@ import qualified Data.ByteString.Lazy as B
 import Chips.Globals
 import Chips.RenderedTiles
 
+eachTile :: ((Tile, Int) -> GameMonad ()) -> GameMonad ()
+eachTile action = do
+    gs <- get
+    forM_ (withIndices (gs ^. tiles)) action
+    
+
 chipsLeft gs = length $ filter isChip (_tiles gs)
   where isChip (Chip _) = True
         isChip _        = False
@@ -201,7 +207,7 @@ moveEnemies :: GameMonad ()
 moveEnemies = do
   gs <- get
   onTick $ do
-    forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+    eachTile $ \(tile, i) -> do
       case tile of
         Tank dir _ _   -> maybeMoveTile i dir Nothing
         Rocket dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
@@ -222,7 +228,7 @@ moveEnemies = do
                                 _ -> return False
         Bee _ _ _ -> moveClockwise i Nothing
         _       -> return False
-    return ()
+      return ()
 
 -- Move this bee counter-clockwise around an object.
 moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
@@ -415,19 +421,19 @@ checkCurTile (Sand _ _) = do
     DirDown  -> moveSand TileBelow
 checkCurTile (ButtonGreen _) = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+  eachTile $ \(tile, i) -> do
     case tile of
       ToggleDoor x _ -> tileAt (Arbitrary i) .= ToggleDoor (not x) def
       _       -> return ()
 checkCurTile (ButtonBlue _) = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+  eachTile $ \(tile, i) -> do
     case tile of
       Tank dir tileUnder _ -> tileAt (Arbitrary i) .= Tank (opposite dir) tileUnder def
       _       -> return ()
 checkCurTile (ButtonRed _) = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+  eachTile $ \(tile, i) -> do
     case tile of
       GeneratorFireball dir _ -> do
         let genAt loc = do

@@ -60,7 +60,7 @@ stepGame i = do
 -- If so, the related traps should be open.
 checkSand = do
   gs <- get
-  forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
+  eachTile $ \(tile, i) -> do
     case tile of
       Sand button@(ButtonBrown _ _) _ -> checkCurTile button
       _ -> return ()
