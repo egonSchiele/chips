@@ -6,6 +6,11 @@ import ActionKid
 import Graphics.Gloss hiding (display)
 
 data Direction = DirUp | DirDown | DirLeft | DirRight | Standing deriving (Show, Eq)
+opposite DirUp = DirDown
+opposite DirDown = DirUp
+opposite DirLeft = DirRight
+opposite DirRight = DirLeft
+
 data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight | Arbitrary Int | Coords (Int, Int) deriving (Show, Eq)
 
 data Tile = Empty Attributes

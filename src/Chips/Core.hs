@@ -163,10 +163,9 @@ isButton _               = False
 -- the item will now be in the trap.
 moveTile :: Int -> Int -> Maybe Direction -> GameMonad Bool
 moveTile from to newDir = do
-  gs <- get
-  let fromTile = (gs ^. tiles) !! from
-      toTile = (gs ^. tiles) !! to
-      newToTile = case toTile of
+  fromTile <- use $ tileAt (Arbitrary from)
+  toTile <- use $ tileAt (Arbitrary to)
+  let newToTile = case toTile of
                     Trap _ _ -> tileUnder .~ fromTile $ toTile
                     _ -> case newDir of
                            Just dir_ -> dir .~ dir_ $ tileUnder .~ toTile $ fromTile
@@ -183,9 +182,9 @@ moveTile from to newDir = do
 -- enemies respond differently to different tiles.
 maybeMoveTile :: Int -> Direction -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 maybeMoveTile i dir func = do
-  gs <- get
+  moveTo <- use $ tileAt (Arbitrary i)
   let moveIfEmpty moveI = do
-        case (gs ^. tiles) !! moveI of
+        case moveTo of
           Empty _ -> moveTile i moveI (Just dir)
           ButtonRed _ -> moveTile i moveI (Just dir)
           ButtonBrown _ _ -> moveTile i moveI (Just dir)
@@ -193,6 +192,7 @@ maybeMoveTile i dir func = do
           ButtonGreen _ -> moveTile i moveI (Just dir)
           ToggleDoor True _ -> moveTile i moveI (Just dir)
           Trap _ _ -> moveTile i moveI (Just dir)
+          -- flexibility
           x -> case func of
                  Nothing -> return False
                  Just f -> f (x, moveI)
@@ -207,7 +207,6 @@ onTick action = whenM id tick action
 
 moveEnemies :: GameMonad ()
 moveEnemies = do
-  gs <- get
   onTick $ do
     eachTile $ \(tile, i) -> do
       case tile of
@@ -235,9 +234,8 @@ moveEnemies = do
 -- Move this bee counter-clockwise around an object.
 moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 moveClockwise i func = do
-    gs <- get
-    let enemy = (gs ^. tiles) !! i
-        goLeft  = maybeMoveTile i DirLeft func
+    enemy <- use $ tileAt (Arbitrary i)
+    let goLeft  = maybeMoveTile i DirLeft func
         goRight = maybeMoveTile i DirRight func
         goUp    = maybeMoveTile i DirUp func
         goDown  = maybeMoveTile i DirDown func
@@ -252,9 +250,8 @@ moveClockwise i func = do
 -- you can, and when you hit a wall, turn.
 moveClockwiseLong :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 moveClockwiseLong i func = do
-    gs <- get
-    let enemy = (gs ^. tiles) !! i
-        goLeft  = maybeMoveTile i DirLeft func
+    enemy <- use $ tileAt (Arbitrary i)
+    let goLeft  = maybeMoveTile i DirLeft func
         goRight = maybeMoveTile i DirRight func
         goUp    = maybeMoveTile i DirUp func
         goDown  = maybeMoveTile i DirDown func
@@ -271,11 +268,6 @@ a <||> b = do
   if res
     then return True
     else b
-
-opposite DirUp = DirDown
-opposite DirDown = DirUp
-opposite DirLeft = DirRight
-opposite DirRight = DirLeft
 
 checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
@@ -313,8 +305,8 @@ checkCurTile (LockRed _) = do
   tileAt Current .= (Empty def)
 checkCurTile (GateFinal _) = do
   win
-  gs <- get
-  put $ gameState (gs ^. level + 1)
+  lvl <- use level
+  put $ gameState (lvl + 1)
 checkCurTile (Water _) = do
   guardGodMode $ whenM not hasFlippers die
 checkCurTile (Fire _) = do
@@ -424,24 +416,21 @@ checkCurTile (Sand _ _) = do
     DirUp    -> moveSand TileAbove
     DirDown  -> moveSand TileBelow
 checkCurTile (ButtonGreen _) = do
-  gs <- get
   eachTile $ \(tile, i) -> do
     case tile of
       ToggleDoor x _ -> tileAt (Arbitrary i) .= ToggleDoor (not x) def
       _       -> return ()
 checkCurTile (ButtonBlue _) = do
-  gs <- get
   eachTile $ \(tile, i) -> do
     case tile of
       Tank dir tileUnder _ -> tileAt (Arbitrary i) .= Tank (opposite dir) tileUnder def
       _       -> return ()
 checkCurTile (ButtonRed _) = do
-  gs <- get
   eachTile $ \(tile, i) -> do
     case tile of
       GeneratorFireball dir _ -> do
         let genAt loc = do
-              let oldTile = (gs ^. tiles) !! loc
+              oldTile <- use $ tileAt (Arbitrary loc)
               tileAt (Arbitrary loc) .= Fireball dir oldTile def
         case dir of
           DirLeft  -> genAt (i - 1)
@@ -450,20 +439,21 @@ checkCurTile (ButtonRed _) = do
           DirDown  -> genAt (i + boardW)
       _       -> return ()
   return ()
-checkCurTile (Trap inTrap _) = do
-  gs <- get
+checkCurTile (Trap (Empty _) _) = do
   guardGodMode $ do
-    case inTrap of
-      Empty _ -> do
-        tileAt Current .= Trap (PlayerInTrap def) def
-        player.direction .= Standing
-        disableInput .= True
-      PlayerInTrap _ -> return ()
-      x -> die
+    tileAt Current .= Trap (PlayerInTrap def) def
+    player.direction .= Standing
+    disableInput .= True
+    
+-- just means you're already in the trap
+checkCurTile (Trap (PlayerInTrap _) _) = return ()
+
+-- assume there is some enemy in the trap
+checkCurTile (Trap _ _) = die
 checkCurTile (ButtonBrown trapPos _) = do
   gs <- get
   i <- tilePosToIndex trapPos
-  case (gs ^. tiles) !! i of
+  case gs ^. tiles.(idx i) of
     Trap t _ ->
       case t of
         -- free the enemy
@@ -528,14 +518,13 @@ movePlayer :: TilePos -> GameMonad ()
 movePlayer pos = do
   gs <- get
   destTile <- use $ tileAt pos
-  let curTile = gs ^. player.standingOn
-      diffX = (destTile ^. x) - (curTile ^. x)
+  curTile <- use $ tileAt Current
+  let diffX = (destTile ^. x) - (curTile ^. x)
       diffY = (destTile ^. y) - (curTile ^. y)
   player.x += diffX
   player.y += diffY
   x -= diffX
   y -= diffY
-  liftIO $ print (diffX, diffY)
 
 once :: GameMonad () -> GameMonad ()
 once action = do
@@ -545,7 +534,7 @@ once action = do
 
 closeRecessedWall :: GameMonad ()
 closeRecessedWall = do
-  gs <- get
-  case gs ^. player.standingOn of
+  cur <- use $ tileAt Current
+  case cur of
     RecessedWall _ -> tileAt Current .= Wall def
     _ -> return ()
