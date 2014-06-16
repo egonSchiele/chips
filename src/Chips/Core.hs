@@ -67,7 +67,7 @@ tilePosToIndex pos = do
       TileRight -> playerIdx + 1
       TileAbove -> playerIdx - boardW
       TileBelow -> playerIdx + boardW
-      Arbitrary i -> i
+      Ix i -> i
       Coords (x, y) -> (x - 1) + boardW * (y - 1)
 
 posToIndex :: TilePos -> GameState -> Int
@@ -78,7 +78,7 @@ posToIndex pos gs =
     TileRight -> playerIdx + 1
     TileAbove -> playerIdx - boardW
     TileBelow -> playerIdx + boardW
-    Arbitrary i -> i
+    Ix i -> i
     Coords (x, y) -> (x - 1) + boardW * (y - 1)
   where playerIdx = currentIdx gs
 
@@ -104,7 +104,7 @@ wireTraps i tmap =
         where func tmap_ (i,j) = setValue tmap_ i $ \val ->
                  case val of
                    ButtonBrown _ attrs_ -> case (tmap !! j) of
-                     Trap _ _ -> ButtonBrown (Arbitrary j) attrs_
+                     Trap _ _ -> ButtonBrown (Ix j) attrs_
                      x -> error $ "item at location j: " ++ (show j) ++ " is not a Trap. It is a " ++ (show x)
                    x -> error $ "item at location i: " ++ (show i) ++ " is not a ButtonBrown. It is a " ++ (show x)
 
@@ -116,7 +116,7 @@ wireTeleporters i tmap =
       (Just list) -> foldl func tmap list
         where func tmap_ (i,u,d,l,r) = setValue tmap_ i $ \val ->
                  case val of
-                   Teleporter _ _ _ _ attrs_ -> Teleporter (Arbitrary u) (Arbitrary d) (Arbitrary l) (Arbitrary r) attrs_
+                   Teleporter _ _ _ _ attrs_ -> Teleporter (Ix u) (Ix d) (Ix l) (Ix r) attrs_
                    x -> error $ "item at location i: " ++ (show i) ++ " is not a Teleporter It is a " ++ (show x)
 
 -- Given a level number, returns the starting game state for that level
@@ -163,15 +163,15 @@ isButton _               = False
 -- the item will now be in the trap.
 moveTile :: Int -> Int -> Maybe Direction -> GameMonad Bool
 moveTile from to newDir = do
-  fromTile <- use $ tileAt (Arbitrary from)
-  toTile <- use $ tileAt (Arbitrary to)
+  fromTile <- use $ tileAt (Ix from)
+  toTile <- use $ tileAt (Ix to)
   let newToTile = case toTile of
                     Trap _ _ -> tileUnder .~ fromTile $ toTile
                     _ -> case newDir of
                            Just dir_ -> dir .~ dir_ $ tileUnder .~ toTile $ fromTile
                            Nothing -> tileUnder .~ toTile $ fromTile
-  tileAt (Arbitrary from) .= (fromTile ^. tileUnder)
-  tileAt (Arbitrary to) .= newToTile
+  tileAt (Ix from) .= (fromTile ^. tileUnder)
+  tileAt (Ix to) .= newToTile
   when (isButton toTile) $ checkCurTile toTile
   return True
 
@@ -182,7 +182,7 @@ moveTile from to newDir = do
 -- enemies respond differently to different tiles.
 maybeMoveTile :: Int -> Direction -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 maybeMoveTile i dir func = do
-  moveTo <- use $ tileAt (Arbitrary i)
+  moveTo <- use $ tileAt (Ix i)
   let moveIfEmpty moveI = do
         case moveTo of
           Empty _ -> moveTile i moveI (Just dir)
@@ -215,16 +215,16 @@ moveEnemies = do
                             case tile of
                               Bomb _ -> do
                                 moveTile i moveI Nothing
-                                tileAt (Arbitrary moveI) .= (Empty def)
+                                tileAt (Ix moveI) .= (Empty def)
                                 return True
                               _ -> return False
         BallPink dir tileUnder _ -> maybeMoveTile i dir $ Just $ \_ -> do
-                                      tileAt (Arbitrary i) .= (BallPink (opposite dir) tileUnder def)
+                                      tileAt (Ix i) .= (BallPink (opposite dir) tileUnder def)
                                       return True
         Fireball dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
                               case tile of
                                 Fire _ -> moveTile i moveI (Just dir)
-                                Water _ -> tileAt (Arbitrary i) .= (Empty def) >> return True
+                                Water _ -> tileAt (Ix i) .= (Empty def) >> return True
                                 Ice _ -> moveTile i moveI (Just dir)
                                 _ -> return False
         Bee _ _ _ -> moveClockwise i Nothing
@@ -239,7 +239,7 @@ moveFrog i = return True
 -- Move this bee counter-clockwise around an object.
 moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 moveClockwise i func = do
-    enemy <- use $ tileAt (Arbitrary i)
+    enemy <- use $ tileAt (Ix i)
     let goLeft  = maybeMoveTile i DirLeft func
         goRight = maybeMoveTile i DirRight func
         goUp    = maybeMoveTile i DirUp func
@@ -255,7 +255,7 @@ moveClockwise i func = do
 -- you can, and when you hit a wall, turn.
 moveClockwiseLong :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 moveClockwiseLong i func = do
-    enemy <- use $ tileAt (Arbitrary i)
+    enemy <- use $ tileAt (Ix i)
     let goLeft  = maybeMoveTile i DirLeft func
         goRight = maybeMoveTile i DirRight func
         goUp    = maybeMoveTile i DirUp func
@@ -423,20 +423,20 @@ checkCurTile (Sand _ _) = do
 checkCurTile (ButtonGreen _) = do
   eachTile $ \(tile, i) -> do
     case tile of
-      ToggleDoor x _ -> tileAt (Arbitrary i) .= ToggleDoor (not x) def
+      ToggleDoor x _ -> tileAt (Ix i) .= ToggleDoor (not x) def
       _       -> return ()
 checkCurTile (ButtonBlue _) = do
   eachTile $ \(tile, i) -> do
     case tile of
-      Tank dir tileUnder _ -> tileAt (Arbitrary i) .= Tank (opposite dir) tileUnder def
+      Tank dir tileUnder _ -> tileAt (Ix i) .= Tank (opposite dir) tileUnder def
       _       -> return ()
 checkCurTile (ButtonRed _) = do
   eachTile $ \(tile, i) -> do
     case tile of
       GeneratorFireball dir _ -> do
         let genAt loc = do
-              oldTile <- use $ tileAt (Arbitrary loc)
-              tileAt (Arbitrary loc) .= Fireball dir oldTile def
+              oldTile <- use $ tileAt (Ix loc)
+              tileAt (Ix loc) .= Fireball dir oldTile def
         case dir of
           DirLeft  -> genAt (i - 1)
           DirRight -> genAt (i + 1)
@@ -462,13 +462,13 @@ checkCurTile (ButtonBrown trapPos _) = do
     Trap t _ ->
       case t of
         -- free the enemy
-        Rocket dir _ _ -> tileAt (Arbitrary i) .= Rocket dir (Trap (Empty def) def) def
-        Fireball dir _ _ -> tileAt (Arbitrary i) .= Fireball dir (Trap (Empty def) def) def
-        Bee dir _ _ -> tileAt (Arbitrary i) .= Bee dir (Trap (Empty def) def) def
-        Frog dir _ _ -> tileAt (Arbitrary i) .= Frog dir (Trap (Empty def) def) def
-        Tank dir _ _ -> tileAt (Arbitrary i) .= Tank dir (Trap (Empty def) def) def
-        Worm dir _ _ -> tileAt (Arbitrary i) .= Worm dir (Trap (Empty def) def) def
-        BallPink dir _ _ -> tileAt (Arbitrary i) .= BallPink dir (Trap (Empty def) def) def
+        Rocket dir _ _ -> tileAt (Ix i) .= Rocket dir (Trap (Empty def) def) def
+        Fireball dir _ _ -> tileAt (Ix i) .= Fireball dir (Trap (Empty def) def) def
+        Bee dir _ _ -> tileAt (Ix i) .= Bee dir (Trap (Empty def) def) def
+        Frog dir _ _ -> tileAt (Ix i) .= Frog dir (Trap (Empty def) def) def
+        Tank dir _ _ -> tileAt (Ix i) .= Tank dir (Trap (Empty def) def) def
+        Worm dir _ _ -> tileAt (Ix i) .= Worm dir (Trap (Empty def) def) def
+        BallPink dir _ _ -> tileAt (Ix i) .= BallPink dir (Trap (Empty def) def) def
         PlayerInTrap _ -> do
           disableInput .= False
         _ -> return ()

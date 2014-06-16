@@ -8,7 +8,7 @@ opposite DirDown = DirUp
 opposite DirLeft = DirRight
 opposite DirRight = DirLeft
 
-data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight | Arbitrary Int | Coords (Int, Int) deriving (Show, Eq)
+data TilePos = Current | TileAbove | TileBelow | TileLeft | TileRight | Ix Int | Coords (Int, Int) deriving (Show, Eq)
 
 data Tile = Empty Attributes
           | Wall  Attributes

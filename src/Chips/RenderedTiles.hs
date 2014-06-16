@@ -51,7 +51,7 @@ renderedTiles tmap = renderTileMap tmap f (32, 32)
           f 41 = Sand (Fire def) def
           f 42 = ButtonBlue def
           -- the locations of the traps get filled in later...
-          f 43 = ButtonBrown (Arbitrary 0) def
+          f 43 = ButtonBrown (Ix 0) def
           f 44 = ButtonRed def
           f 45 = ButtonGreen def
           f 46 = ToggleDoor True def
@@ -79,7 +79,7 @@ renderedTiles tmap = renderTileMap tmap f (32, 32)
           f 68 = BlueWall False def
           f 69 = Gravel def
           f 70 = FakeChip def
-          f 71 = Teleporter (Arbitrary 50) (Arbitrary 50) (Arbitrary 50) (Arbitrary 50) def
+          f 71 = Teleporter (Ix 50) (Ix 50) (Ix 50) (Ix 50) def
           f 72 = RecessedWall def
           f 73 = ThinWall DirUp def
           f 74 = ThinWall DirDown def
