@@ -1,5 +1,5 @@
 module Chips.RenderedTiles where
-import Chips.Common
+import Chips.Imports
 import Chips.Types
 import Chips.Globals
 

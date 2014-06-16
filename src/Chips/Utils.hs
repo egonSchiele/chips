@@ -1,5 +1,5 @@
 module Chips.Utils where
-import Chips.Common
+import Chips.Imports
 
 join elem list = concat $ intersperse elem list
 

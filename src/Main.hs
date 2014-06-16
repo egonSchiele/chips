@@ -3,7 +3,6 @@
 import Chips
 main = do
     -- playSound (soundDir ++ "chips01.wav") True
-                                                                    -- move this logic to ActionKid instead
     run "chips challenge" (9 * tileSize, 9 * tileSize) (gameState 1) on stepGame
 
 stepGame :: Float -> GameMonad ()

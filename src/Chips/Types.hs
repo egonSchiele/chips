@@ -1,9 +1,6 @@
 {-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
 module Chips.Types where
-import Chips.Common
-import Control.Lens
-import ActionKid
-import Graphics.Gloss hiding (display)
+import Chips.Imports
 
 data Direction = DirUp | DirDown | DirLeft | DirRight | Standing deriving (Show, Eq)
 opposite DirUp = DirDown

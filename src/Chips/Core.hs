@@ -2,7 +2,7 @@
 module Chips.Core where
 import Chips.Types
 import Chips.Utils
-import Chips.Common
+import Chips.Imports
 import qualified Data.ByteString.Lazy as B
 import Chips.Globals
 import Chips.RenderedTiles
@@ -228,8 +228,13 @@ moveEnemies = do
                                 Ice _ -> moveTile i moveI (Just dir)
                                 _ -> return False
         Bee _ _ _ -> moveClockwise i Nothing
+        Frog _ _ _ -> moveFrog i
         _       -> return False
       return ()
+
+-- move this frog closer to the player
+moveFrog :: Int -> GameMonad Bool
+moveFrog i = return True
 
 -- Move this bee counter-clockwise around an object.
 moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool

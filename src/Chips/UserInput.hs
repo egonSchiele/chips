@@ -1,7 +1,7 @@
 module Chips.UserInput where
 import Chips.Types
 import Chips.Utils
-import Chips.Common
+import Chips.Imports
 import Chips.Core
 import Chips.Globals
 

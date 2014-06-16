@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
 
 module Chips.Globals where
-import Chips.Common
+import Chips.Imports
 
 -- this keeps track of when we last moved.
 -- So if the user is holding a key down, we
