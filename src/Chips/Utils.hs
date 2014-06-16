@@ -26,6 +26,4 @@ whenM func val action = do
   val_ <- use val
   when (func val_) action
 
-with val action = do
-  val_ <- use val
-  action val_
+with val action = execState action val

@@ -9,8 +9,8 @@ import Chips.RenderedTiles
 
 eachTile :: ((Tile, Int) -> GameMonad ()) -> GameMonad ()
 eachTile action = do
-    gs <- get
-    forM_ (withIndices (gs ^. tiles)) action
+  gs <- get
+  forM_ (withIndices (gs ^. tiles)) action
     
 
 chipsLeft gs = length $ filter isChip (_tiles gs)
@@ -60,15 +60,7 @@ currentIdx gs = y_ * boardW + x_
 tilePosToIndex :: TilePos -> GameMonad Int
 tilePosToIndex pos = do
     gs <- get
-    let playerIdx = currentIdx gs
-    return $ case pos of
-      Current   -> playerIdx
-      TileLeft  -> playerIdx - 1
-      TileRight -> playerIdx + 1
-      TileAbove -> playerIdx - boardW
-      TileBelow -> playerIdx + boardW
-      Ix i -> i
-      Coords (x, y) -> (x - 1) + boardW * (y - 1)
+    return $ posToIndex pos gs
 
 posToIndex :: TilePos -> GameState -> Int
 posToIndex pos gs = 
@@ -132,7 +124,7 @@ gameState i = x .~ startX $ y .~ startY $ gs
               0 0 0 False
               False False False False False
               False
-              False
+              (False, 0)
               def
         startX = if fst chipStart >= 4
                    then (4 - fst chipStart) * tileSize -- "4" is (9 - 1)/2. 9 is the width of the game screen
@@ -148,11 +140,11 @@ gameState i = x .~ startX $ y .~ startY $ gs
             Nothing -> error "You need to mark where chip will stand in the tilemap. Mark it with a zero (0)."
             Just y -> (fromIntegral . fromJust $ findIndex (==0) (tmap !! y), boardH - 1 - (fromIntegral y))
 
-isButton (ButtonRed _)   = True
-isButton (ButtonBlue _)  = True
-isButton (ButtonGreen _) = True
+isButton (ButtonRed _)     = True
+isButton (ButtonBlue _)    = True
+isButton (ButtonGreen _)   = True
 isButton (ButtonBrown _ _) = True
-isButton _               = False
+isButton _                 = False
 
 -- move a tile from one location to another. Generally
 -- used to move tanks, frogs, other enemies. If the enemy
@@ -164,12 +156,15 @@ isButton _               = False
 moveTile :: Int -> Int -> Maybe Direction -> GameMonad Bool
 moveTile from to newDir = do
   fromTile <- use $ tileAt (Ix from)
-  toTile <- use $ tileAt (Ix to)
+  toTile   <- use $ tileAt (Ix to)
   let newToTile = case toTile of
                     Trap _ _ -> tileUnder .~ fromTile $ toTile
-                    _ -> case newDir of
-                           Just dir_ -> dir .~ dir_ $ tileUnder .~ toTile $ fromTile
-                           Nothing -> tileUnder .~ toTile $ fromTile
+                    _ -> with fromTile $ do
+                           case newDir of
+                             Just dir_ -> do
+                               dir .= dir_
+                               tileUnder .= toTile
+                             Nothing   -> tileUnder .= toTile
   tileAt (Ix from) .= (fromTile ^. tileUnder)
   tileAt (Ix to) .= newToTile
   when (isButton toTile) $ checkCurTile toTile
@@ -182,16 +177,16 @@ moveTile from to newDir = do
 -- enemies respond differently to different tiles.
 maybeMoveTile :: Int -> Direction -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
 maybeMoveTile i dir func = do
-  moveTo <- use $ tileAt (Ix i)
   let moveIfEmpty moveI = do
+        moveTo <- use $ tileAt (Ix moveI)
         case moveTo of
-          Empty _ -> moveTile i moveI (Just dir)
-          ButtonRed _ -> moveTile i moveI (Just dir)
-          ButtonBrown _ _ -> moveTile i moveI (Just dir)
-          ButtonBlue _ -> moveTile i moveI (Just dir)
-          ButtonGreen _ -> moveTile i moveI (Just dir)
+          Empty _           -> moveTile i moveI (Just dir)
+          ButtonRed _       -> moveTile i moveI (Just dir)
+          ButtonBrown _ _   -> moveTile i moveI (Just dir)
+          ButtonBlue _      -> moveTile i moveI (Just dir)
+          ButtonGreen _     -> moveTile i moveI (Just dir)
           ToggleDoor True _ -> moveTile i moveI (Just dir)
-          Trap _ _ -> moveTile i moveI (Just dir)
+          Trap _ _          -> moveTile i moveI (Just dir)
           -- flexibility
           x -> case func of
                  Nothing -> return False
@@ -203,7 +198,11 @@ maybeMoveTile i dir func = do
     DirDown  -> moveIfEmpty (i + boardW)
 
 onTick :: GameMonad () -> GameMonad ()
-onTick action = whenM id tick action
+onTick action = whenM fst tick action
+
+-- wait 2 ticks before doing this
+onDoubleTick :: GameMonad () -> GameMonad ()
+onDoubleTick action = whenM (even . snd) tick action
 
 moveEnemies :: GameMonad ()
 moveEnemies = do
@@ -234,7 +233,28 @@ moveEnemies = do
 
 -- move this frog closer to the player
 moveFrog :: Int -> GameMonad Bool
-moveFrog i = return True
+moveFrog i = do
+  (_, time) <- use tick
+  if odd time
+    then return False
+    else do
+      frog <- use $ tileAt (Ix i)
+      p <- use player
+      let addDir dir = modify ((maybeMoveTile i dir Nothing):)
+          -- list of all the moves the frog could make.
+          -- We will make one of these moves.
+          moves =
+            with [] $ do
+              when (p ^. x < frog ^. x) $ addDir DirLeft
+              when (p ^. x > frog ^. x) $ addDir DirRight
+              when (p ^. y < frog ^. y) $ addDir DirDown
+              when (p ^. y > frog ^. y) $ addDir DirUp
+
+      oneOf moves
+
+oneOf :: [GameMonad Bool] -> GameMonad Bool
+oneOf (x:[]) = x
+oneOf (x:xs) = x <||> (oneOf xs)
 
 -- Move this bee counter-clockwise around an object.
 moveClockwise :: Int -> Maybe ((Tile, Int) -> GameMonad Bool) -> GameMonad Bool
@@ -458,20 +478,20 @@ checkCurTile (Trap _ _) = die
 checkCurTile (ButtonBrown trapPos _) = do
   gs <- get
   i <- tilePosToIndex trapPos
+  let trap = (Trap (Empty def) def)
   case gs ^. tiles.(idx i) of
     Trap t _ ->
       case t of
         -- free the enemy
-        Rocket dir _ _ -> tileAt (Ix i) .= Rocket dir (Trap (Empty def) def) def
-        Fireball dir _ _ -> tileAt (Ix i) .= Fireball dir (Trap (Empty def) def) def
-        Bee dir _ _ -> tileAt (Ix i) .= Bee dir (Trap (Empty def) def) def
-        Frog dir _ _ -> tileAt (Ix i) .= Frog dir (Trap (Empty def) def) def
-        Tank dir _ _ -> tileAt (Ix i) .= Tank dir (Trap (Empty def) def) def
-        Worm dir _ _ -> tileAt (Ix i) .= Worm dir (Trap (Empty def) def) def
-        BallPink dir _ _ -> tileAt (Ix i) .= BallPink dir (Trap (Empty def) def) def
-        PlayerInTrap _ -> do
-          disableInput .= False
-        _ -> return ()
+        Rocket dir _ _   -> tileAt (Ix i) .= Rocket dir trap def
+        Fireball dir _ _ -> tileAt (Ix i) .= Fireball dir trap def
+        Bee dir _ _      -> tileAt (Ix i) .= Bee dir trap def
+        Frog dir _ _     -> tileAt (Ix i) .= Frog dir trap def
+        Tank dir _ _     -> tileAt (Ix i) .= Tank dir trap def
+        Worm dir _ _     -> tileAt (Ix i) .= Worm dir trap def
+        BallPink dir _ _ -> tileAt (Ix i) .= BallPink dir trap def
+        PlayerInTrap _   -> disableInput .= False
+        _                -> return ()
     _ -> return ()
 checkCurTile (Bee _ _ _) = die
 checkCurTile (Frog _ _ _) = die
@@ -484,29 +504,29 @@ checkCurTile (Fireball _ _ _) = die
 checkCurTile (Teleporter u d l r _) = do
   gs <- get
   case gs ^. player.direction of
-    DirUp -> movePlayer u
-    DirDown -> movePlayer d
-    DirLeft -> movePlayer l
+    DirUp    -> movePlayer u
+    DirDown  -> movePlayer d
+    DirLeft  -> movePlayer l
     DirRight -> movePlayer r
     Standing -> return ()
 checkCurTile (Spy _) = do
   gs <- get
   guardGodMode $ do
-    redKeyCount .= 0
-    blueKeyCount .= 0
+    redKeyCount    .= 0
+    blueKeyCount   .= 0
     yellowKeyCount .= 0
-    hasGreenKey .= False
-    hasFFShoes .= False
-    hasFireBoots .= False
-    hasFlippers .= False
-    hasIceSkates .= False
+    hasGreenKey    .= False
+    hasFFShoes     .= False
+    hasFireBoots   .= False
+    hasFlippers    .= False
+    hasIceSkates   .= False
 checkCurTile (Dirt _) = tileAt Current .= Empty def
 checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
 moveSand destPos = do
     destTile <- use $ tileAt destPos
-    curTile <- use $ tileAt Current
+    curTile  <- use $ tileAt Current
     let isBomb (Bomb _) = True
         isBomb _        = False
     case curTile of
@@ -533,7 +553,7 @@ movePlayer pos = do
 
 once :: GameMonad () -> GameMonad ()
 once action = do
-    cur <- liftIO . readIORef $ curLocation
+    cur  <- liftIO . readIORef $ curLocation
     prev <- liftIO . readIORef $ prevLocation
     when (cur /= prev) action
 

@@ -48,9 +48,10 @@ stepGame i = do
   if (diffUTCTime last cur < moveSpeed)
     then do
       liftIO $ lastTick $= cur
-      tick .= True
+      tick._1 .= True
+      tick._2 += 1
     else
-      tick .= False
+      tick._1 .= False
   moveEnemies
   checkSand
 
