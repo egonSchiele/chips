@@ -39,6 +39,11 @@ on (EventKey (SpecialKey KeyDown) Down _ _) = do
     liftIO resetMoveTime
     player.direction .= DirDown
 
+on (EventKey (SpecialKey KeyLeft) Up _ _) = resetDirIf DirLeft
+on (EventKey (SpecialKey KeyRight) Up _ _) = resetDirIf DirRight
+on (EventKey (SpecialKey KeyUp) Up _ _) = resetDirIf DirUp
+on (EventKey (SpecialKey KeyDown) Up _ _) = resetDirIf DirDown
+
 on (EventKey (SpecialKey KeySpace) Down _ _) = do
   gs <- get
   godMode .= (not $ gs ^. godMode)
@@ -130,3 +135,8 @@ maybeMove tilePos newGs_ = do
                   Bomb _          -> newGs
                   _               -> oof
           _ -> newGs
+
+resetDirIf dir = do
+  playerDir <- use $ player.direction
+  whenM not disableInput $ do
+    when (playerDir == dir) $ player.direction .= Standing

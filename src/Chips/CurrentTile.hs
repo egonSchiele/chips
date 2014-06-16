@@ -6,12 +6,6 @@ import Chips.Globals
 import Chips.GameState
 import Chips.Position
 
-die :: GameMonad ()
-die = do
-  gs <- get
-  guardGodMode $ do
-    bummer >> put (gameState (gs ^. level))
-
 checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
   liftIO $ playSound (soundDir ++ "collect_chip.wav") False
@@ -268,3 +262,9 @@ movePlayer pos = do
   player.y += diffY
   x -= diffX
   y -= diffY
+
+die :: GameMonad ()
+die = do
+  gs <- get
+  guardGodMode $ do
+    bummer >> put (gameState (gs ^. level))
