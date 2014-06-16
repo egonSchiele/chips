@@ -70,6 +70,12 @@ data Tile = Empty Attributes
           | PlayerInTrap Attributes
           deriving (Show, Eq)
 
+isButton (ButtonRed _)     = True
+isButton (ButtonBlue _)    = True
+isButton (ButtonGreen _)   = True
+isButton (ButtonBrown _ _) = True
+isButton _                 = False
+
 getTileUnder :: Tile -> Tile
 getTileUnder tile = 
   case tile of

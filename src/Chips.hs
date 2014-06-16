@@ -5,6 +5,11 @@ module Chips (
     ,module Chips.Imports
     ,module Chips.UserInput
     ,module Chips.Globals
+    ,module Chips.GameState
+    ,module Chips.Enemies
+    ,module Chips.Position
+    ,module Chips.CurrentTile
+    ,module Chips.Move
   ) where
 import Chips.Types
 import Chips.Core
@@ -12,3 +17,8 @@ import Chips.Utils
 import Chips.Imports
 import Chips.UserInput
 import Chips.Globals
+import Chips.GameState
+import Chips.Enemies
+import Chips.Position
+import Chips.CurrentTile
+import Chips.Move

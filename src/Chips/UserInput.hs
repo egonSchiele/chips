@@ -4,6 +4,15 @@ import Chips.Utils
 import Chips.Imports
 import Chips.Core
 import Chips.Globals
+import Chips.GameState
+import Chips.Position
+
+closeRecessedWall :: GameMonad ()
+closeRecessedWall = do
+  cur <- use $ tileAt Current
+  case cur of
+    RecessedWall _ -> tileAt Current .= Wall def
+    _ -> return ()
 
 -- used in some logic that lets a user hold a key down.
 resetMoveTime :: IO ()
