@@ -71,19 +71,19 @@ maybeMove tilePos newGs_ = do
       then return ()
       else do
         liftIO $ lastPress $= cur
-        tile <- tilePosToTile tilePos
+        tile <- use $ tileAt tilePos
         gs <- get
         case tile of
           Wall _ -> oof
           ToggleDoor False _ -> oof
           BlueWall True _ -> do
-            setTile tilePos (Wall def)
+            tileAt tilePos .= Wall def
             oof
           BlueWall False _ -> do
-            setTile tilePos (Empty def)
+            tileAt tilePos .= Empty def
             newGs
           InvisibleWall True _ -> do
-            setTile tilePos (Wall def)
+            tileAt tilePos .= Wall def
             oof
           InvisibleWall False _ -> oof
           LockRed _    -> if _redKeyCount gs > 0 || gs ^. godMode

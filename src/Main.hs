@@ -32,7 +32,7 @@ stepGame i = do
         when (gs ^. player.y < ((boardH-4)*tileSize) && gs ^. player.y > (4*tileSize)) $ do
           y += tileSize
     _ -> return ()
-  curTile <- tilePosToTile Current
+  curTile <- use . tileAt $ Current
   curI <- tilePosToIndex Current
   curLocation_ <- liftIO $ readIORef curLocation
   liftIO $ prevLocation $= curLocation_
@@ -66,7 +66,7 @@ checkSand = do
       _ -> return ()
 
 maybeDisableInput = do
-  curTile <- tilePosToTile Current
+  curTile <- use . tileAt $ Current
   gs <- get
   if (not $ gs ^. godMode)
     then do

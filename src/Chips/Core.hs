@@ -60,19 +60,30 @@ tilePosToIndex pos = do
       Arbitrary i -> i
       Coords (x, y) -> (x - 1) + boardW * (y - 1)
 
-tilePosToTile :: TilePos -> GameMonad Tile
-tilePosToTile pos = do
-    gs <- get
-    i <- tilePosToIndex pos
-    return $ (gs ^. tiles) !! i
+posToIndex :: TilePos -> GameState -> Int
+posToIndex pos gs = 
+  case pos of
+    Current   -> playerIdx
+    TileLeft  -> playerIdx - 1
+    TileRight -> playerIdx + 1
+    TileAbove -> playerIdx - boardW
+    TileBelow -> playerIdx + boardW
+    Arbitrary i -> i
+    Coords (x, y) -> (x - 1) + boardW * (y - 1)
+  where playerIdx = currentIdx gs
 
-setTile :: TilePos -> Tile -> GameMonad ()
-setTile pos tile = do
-    i <- tilePosToIndex pos
-    attrs_ <- use (tiles.(idx i).attrs)
-    tiles.(ix i) .= tile
-    tiles.(ix i).attrs .= attrs_
+-- tile :: Functor f => TilePos -> (Tile -> f Tile) -> Tile -> f Tile
+tileAt pos = lens (getTile pos) (setTile pos)
 
+getTile :: TilePos -> GameState -> Tile
+getTile pos gs = gs ^. tiles.(idx i)
+  where i = posToIndex pos gs
+        
+setTile :: TilePos -> GameState -> Tile -> GameState
+setTile pos gs tile = tiles.(ix i).attrs .~ attrs_ $
+                      tiles.(ix i) .~ tile $ gs
+  where i = posToIndex pos gs
+        attrs_ = gs ^. tiles.(idx i).attrs
 
 -- tell all the brown buttons about the traps they are responsible for.
 wireTraps :: Int -> [Tile] -> [Tile]
@@ -150,8 +161,8 @@ moveTile from to newDir = do
                     _ -> case newDir of
                            Just dir_ -> dir .~ dir_ $ tileUnder .~ toTile $ fromTile
                            Nothing -> tileUnder .~ toTile $ fromTile
-  setTile (Arbitrary from) (fromTile ^. tileUnder)
-  setTile (Arbitrary to) newToTile
+  tileAt (Arbitrary from) .= (fromTile ^. tileUnder)
+  tileAt (Arbitrary to) .= newToTile
   when (isButton toTile) $ checkCurTile toTile
   return True
 
@@ -197,16 +208,16 @@ moveEnemies = do
                             case tile of
                               Bomb _ -> do
                                 moveTile i moveI Nothing
-                                setTile (Arbitrary moveI) (Empty def)
+                                tileAt (Arbitrary moveI) .= (Empty def)
                                 return True
                               _ -> return False
         BallPink dir tileUnder _ -> maybeMoveTile i dir $ Just $ \_ -> do
-                                      setTile (Arbitrary i) (BallPink (opposite dir) tileUnder def)
+                                      tileAt (Arbitrary i) .= (BallPink (opposite dir) tileUnder def)
                                       return True
         Fireball dir _ _ -> moveClockwiseLong i $ Just $ \(tile, moveI) ->
                               case tile of
                                 Fire _ -> moveTile i moveI (Just dir)
-                                Water _ -> setTile (Arbitrary i) (Empty def) >> return True
+                                Water _ -> tileAt (Arbitrary i) .= (Empty def) >> return True
                                 Ice _ -> moveTile i moveI (Just dir)
                                 _ -> return False
         Bee _ _ _ -> moveClockwise i Nothing
@@ -261,37 +272,37 @@ opposite DirRight = DirLeft
 checkCurTile :: Tile -> GameMonad ()
 checkCurTile (Chip _) = do
   liftIO $ playSound (soundDir ++ "collect_chip.wav") False
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (Gate _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (KeyYellow _) = do
   yellowKeyCount += 1
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (KeyBlue _) = do
   blueKeyCount += 1
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (KeyGreen _) = do
   hasGreenKey .= True
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (KeyRed _) = do
   redKeyCount += 1
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (LockYellow _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
   yellowKeyCount -= 1
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (LockBlue _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
   blueKeyCount -= 1
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (LockGreen _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (LockRed _) = do
   liftIO $ playSound (soundDir ++ "door.wav") False
   redKeyCount -= 1
-  setTile Current (Empty def)
+  tileAt Current .= (Empty def)
 checkCurTile (GateFinal _) = do
   win
   gs <- get
@@ -305,7 +316,7 @@ checkCurTile (Fire _) = do
 checkCurTile (Ice _) = do
   gs <- get
   let bounceCheck pos dir = do
-        tile <- tilePosToTile pos
+        tile <- use $ tileAt pos
         -- TODO:
         -- major code duplication between this and maybeMove function,
         -- and this function doesn't even take care of all the cases
@@ -313,12 +324,12 @@ checkCurTile (Ice _) = do
         case tile of
           Wall _ -> player.direction .= dir
           BlueWall True _ -> do
-            setTile pos (Wall def)
+            tileAt pos .= (Wall def)
             player.direction .= dir
           BlueWall False _ -> do
-            setTile pos (Empty def)
+            tileAt pos .= (Empty def)
           InvisibleWall True _ -> do
-            setTile pos (Wall def)
+            tileAt pos .= (Wall def)
             player.direction .= dir
           InvisibleWall False _ -> player.direction .= dir
           _ -> return ()
@@ -383,17 +394,17 @@ checkCurTile (FFDown _) = do
       y += tileSize
 checkCurTile (FFShoes _) = do
   hasFFShoes .= True
-  setTile Current (Empty def)
+  tileAt Current .= Empty def
 checkCurTile (FireBoots _) = do
   hasFireBoots .= True
-  setTile Current (Empty def)
+  tileAt Current .= Empty def
 checkCurTile (Flippers _) = do
   hasFlippers .= True
-  setTile Current (Empty def)
+  tileAt Current .= Empty def
 checkCurTile (IceSkates _) = do
   hasIceSkates .= True
-  setTile Current (Empty def)
-checkCurTile (Sand (Water _) _) = setTile Current (Empty def)
+  tileAt Current .= Empty def
+checkCurTile (Sand (Water _) _) = tileAt Current .= Empty def
 checkCurTile (Sand _ _) = do
   gs <- get
   case gs ^. player.direction of
@@ -406,13 +417,13 @@ checkCurTile (ButtonGreen _) = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      ToggleDoor x _ -> setTile (Arbitrary i) (ToggleDoor (not x) def)
+      ToggleDoor x _ -> tileAt (Arbitrary i) .= ToggleDoor (not x) def
       _       -> return ()
 checkCurTile (ButtonBlue _) = do
   gs <- get
   forM_ (withIndices (gs ^. tiles)) $ \(tile, i) -> do
     case tile of
-      Tank dir tileUnder _ -> setTile (Arbitrary i) (Tank (opposite dir) tileUnder def)
+      Tank dir tileUnder _ -> tileAt (Arbitrary i) .= Tank (opposite dir) tileUnder def
       _       -> return ()
 checkCurTile (ButtonRed _) = do
   gs <- get
@@ -421,7 +432,7 @@ checkCurTile (ButtonRed _) = do
       GeneratorFireball dir _ -> do
         let genAt loc = do
               let oldTile = (gs ^. tiles) !! loc
-              setTile (Arbitrary loc) (Fireball dir oldTile def)
+              tileAt (Arbitrary loc) .= Fireball dir oldTile def
         case dir of
           DirLeft  -> genAt (i - 1)
           DirRight -> genAt (i + 1)
@@ -434,7 +445,7 @@ checkCurTile (Trap inTrap _) = do
   when (not $ gs ^. godMode) $ do
     case inTrap of
       Empty _ -> do
-        setTile Current (Trap (PlayerInTrap def) def)
+        tileAt Current .= Trap (PlayerInTrap def) def
         player.direction .= Standing
         disableInput .= True
       PlayerInTrap _ -> return ()
@@ -446,13 +457,13 @@ checkCurTile (ButtonBrown trapPos _) = do
     Trap t _ ->
       case t of
         -- free the enemy
-        Rocket dir _ _ -> setTile (Arbitrary i) (Rocket dir (Trap (Empty def) def) def)
-        Fireball dir _ _ -> setTile (Arbitrary i) (Fireball dir (Trap (Empty def) def) def)
-        Bee dir _ _ -> setTile (Arbitrary i) (Bee dir (Trap (Empty def) def) def)
-        Frog dir _ _ -> setTile (Arbitrary i) (Frog dir (Trap (Empty def) def) def)
-        Tank dir _ _ -> setTile (Arbitrary i) (Tank dir (Trap (Empty def) def) def)
-        Worm dir _ _ -> setTile (Arbitrary i) (Worm dir (Trap (Empty def) def) def)
-        BallPink dir _ _ -> setTile (Arbitrary i) (BallPink dir (Trap (Empty def) def) def)
+        Rocket dir _ _ -> tileAt (Arbitrary i) .= Rocket dir (Trap (Empty def) def) def
+        Fireball dir _ _ -> tileAt (Arbitrary i) .= Fireball dir (Trap (Empty def) def) def
+        Bee dir _ _ -> tileAt (Arbitrary i) .= Bee dir (Trap (Empty def) def) def
+        Frog dir _ _ -> tileAt (Arbitrary i) .= Frog dir (Trap (Empty def) def) def
+        Tank dir _ _ -> tileAt (Arbitrary i) .= Tank dir (Trap (Empty def) def) def
+        Worm dir _ _ -> tileAt (Arbitrary i) .= Worm dir (Trap (Empty def) def) def
+        BallPink dir _ _ -> tileAt (Arbitrary i) .= BallPink dir (Trap (Empty def) def) def
         PlayerInTrap _ -> do
           disableInput .= False
         _ -> return ()
@@ -484,29 +495,29 @@ checkCurTile (Spy _) = do
     hasFireBoots .= False
     hasFlippers .= False
     hasIceSkates .= False
-checkCurTile (Dirt _) = setTile Current (Empty def)
+checkCurTile (Dirt _) = tileAt Current .= Empty def
 checkCurTile _ = return ()
 
 -- moveSand :: Int -> GameState -> IO GameState
 moveSand destPos = do
-    destTile <- tilePosToTile destPos
-    curTile <- tilePosToTile Current
+    destTile <- use $ tileAt destPos
+    curTile <- use $ tileAt Current
     let isBomb (Bomb _) = True
         isBomb _        = False
     case curTile of
       Sand t _ -> do
-        setTile Current t
-        setTile destPos (Sand destTile def)
+        tileAt Current .= t
+        tileAt destPos .= Sand destTile def
         player.standingOn .= t
         checkCurTile t
         when (isButton destTile) $ checkCurTile destTile
-        when (isBomb destTile) $ setTile destPos (Empty def)
+        when (isBomb destTile) $ tileAt destPos .= Empty def
       _ -> error "current tile isn't a sand tile. How did you get here?"
 
 movePlayer :: TilePos -> GameMonad ()
 movePlayer pos = do
   gs <- get
-  destTile <- tilePosToTile pos
+  destTile <- use $ tileAt pos
   let curTile = gs ^. player.standingOn
       diffX = (destTile ^. x) - (curTile ^. x)
       diffY = (destTile ^. y) - (curTile ^. y)
@@ -526,5 +537,5 @@ closeRecessedWall :: GameMonad ()
 closeRecessedWall = do
   gs <- get
   case gs ^. player.standingOn of
-    RecessedWall _ -> setTile Current (Wall def)
+    RecessedWall _ -> tileAt Current .= Wall def
     _ -> return ()
