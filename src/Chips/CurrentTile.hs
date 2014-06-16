@@ -83,6 +83,7 @@ checkCurTile (IceBottomLeft _) = do
         DirLeft -> player.direction .= DirUp
         DirDown -> player.direction .= DirRight
         _ -> return ()
+
 checkCurTile (IceTopLeft _) = do
   gs <- get
   guardGodMode $ do

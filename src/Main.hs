@@ -2,8 +2,8 @@
 {-# OPTIONS_GHC -fno-full-laziness -fno-cse #-}
 import Chips
 main = do
-    -- playSound (soundDir ++ "chips01.wav") True
-    run "chips challenge" (9 * tileSize, 9 * tileSize) (gameState 1) on stepGame
+  -- playSound (soundDir ++ "chips01.wav") True
+  run "chips challenge" (9 * tileSize, 9 * tileSize) (gameState 1) on stepGame
 
 stepGame :: Float -> GameMonad ()
 stepGame i = do
@@ -90,4 +90,3 @@ maybeDisableInput = do
         whenM id disableInput $ do
           player.direction .= Standing
           disableInput .= False
-          liftIO . putStrLn $ "enabling input"
