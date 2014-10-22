@@ -2,3 +2,4 @@
 - alternate music (chips1/chips2) on different levels
 - allow users to enter password to jump to a level
 - implement a status bar showing time remaining, chips remaining, etc.
+- Maps for every level of chips challenge: http://strategywiki.org/wiki/Chip%27s_Challenge/Levels_1-20

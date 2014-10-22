@@ -1,14 +1,14 @@
 name:                Chips
 version:             0.1.0.0
--- synopsis:            
--- description:         
+-- synopsis:
+-- description:
 homepage:            http://adit.io
 license:             BSD3
 license-file:        LICENSE
 author:              Aditya Bhargava
 maintainer:          bluemangroupie@gmail.com
--- copyright:           
--- category:            
+-- copyright:
+-- category:
 build-type:          Simple
 cabal-version:       >=1.8
 
@@ -17,8 +17,3 @@ executable chips
   hs-source-dirs:      src
   main-is: Main.hs
   ghc-options: -rtsopts -threaded "-with-rtsopts=-M500m -N"
-
--- Note: if you see an error message like:
--- unknown symbol `dominionzm0zi1zi0zi3_DominionziCardsziIntrigue_intrigueCards_closure'
--- ghc: unable to load package `dominion-0.1.0.3'
--- It means that you haven't added a module to your exposed-modules list.
