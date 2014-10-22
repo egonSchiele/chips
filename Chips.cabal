@@ -13,7 +13,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable chips
-  build-depends:       base ==4.6.*, gloss, lens, mtl, template-haskell, ActionKid, time, aeson, bytestring
+  build-depends:       base >=4.6 && <5, gloss, lens, mtl, template-haskell, ActionKid, time, aeson, bytestring
   hs-source-dirs:      src
   main-is: Main.hs
   ghc-options: -rtsopts -threaded "-with-rtsopts=-M500m -N"
