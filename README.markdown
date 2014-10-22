@@ -4,6 +4,8 @@
 
 A clone of the game chips challenge using the [ActionKid](https://github.com/egonSchiele/actionkid) game framework.
 
+**Demo video**: http://vimeo.com/109613639
+
 ## Controls
 
 - `up`, `down`, `left`, `right` keys: move
