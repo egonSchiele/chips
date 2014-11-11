@@ -13,7 +13,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable chips
-  build-depends:       base ==4.6.*,
+  build-depends:       base >=4.6,
                        gloss ==1.8.*,
                        lens ==3.9.*,
                        mtl ==2.1.*,
